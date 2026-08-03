@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+abstract final class AppFonts {
+  static const sans = 'AppSans';
+}
+
 abstract final class AppColors {
   static const background = Color(0xFF081017);
   static const surface = Color(0xFF101C25);
@@ -45,7 +49,7 @@ ThemeData buildAppTheme() {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.background,
-    fontFamily: 'sans-serif',
+    fontFamily: AppFonts.sans,
     textTheme: const TextTheme(
       headlineLarge: TextStyle(
         fontSize: 28,

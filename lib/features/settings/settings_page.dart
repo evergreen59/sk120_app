@@ -262,7 +262,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         status.protectionLabel,
                         style: const TextStyle(
                           color: AppColors.amber,
-                          fontFamily: 'monospace',
+                          fontFamily: AppFonts.sans,
                         ),
                       ),
                     ),

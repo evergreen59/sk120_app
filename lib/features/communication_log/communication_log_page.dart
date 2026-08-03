@@ -150,7 +150,7 @@ class _CommunicationLogPageState extends ConsumerState<CommunicationLogPage> {
           child: SingleChildScrollView(
             child: SelectableText(
               content,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+              style: const TextStyle(fontFamily: AppFonts.sans, fontSize: 11),
             ),
           ),
         ),
@@ -228,7 +228,7 @@ class _LogRow extends StatelessWidget {
                 )
                 .join(' '),
             style: const TextStyle(
-              fontFamily: 'monospace',
+              fontFamily: AppFonts.sans,
               letterSpacing: 0.6,
               color: AppColors.text,
               fontSize: 12,

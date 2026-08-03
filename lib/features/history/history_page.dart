@@ -271,7 +271,7 @@ class _ExportDialog extends StatelessWidget {
       child: SingleChildScrollView(
         child: SelectableText(
           content.isEmpty ? '暂无数据' : content,
-          style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+          style: const TextStyle(fontFamily: AppFonts.sans, fontSize: 11),
         ),
       ),
     ),

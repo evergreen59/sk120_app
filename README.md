@@ -73,6 +73,12 @@ Unknown output state is displayed as Unknown and is never rendered as OFF. Tempe
 
 Drift tables cover devices, presets, measurement samples, output sessions, device groups, communication logs and app settings. The History and Engineering pages expose CSV/JSON export text for copying; the repository also provides export methods for integrating a native file/share surface later.
 
+## Typography
+
+The app bundles Noto Sans CJK SC as the `AppSans` family so Chinese, Latin text, numbers and all requested weights render consistently instead of using platform-dependent `sans-serif` or `monospace` fallbacks. The variable OpenType font maps Flutter `FontWeight` values to its `wght` axis and adds approximately 29 MB of uncompressed font assets.
+
+The font comes from the official `notofonts/noto-cjk` repository at commit `f8d157532fbfaeda587e826d4cd5b21a49186f7c`. `assets/fonts/NotoSansCJKsc-VF.otf` has SHA-256 `2745e9681cb9d8a5c8901b62c9e1bd98c9c774365fc3b84dd467621013b51cd3` and is distributed under the SIL Open Font License 1.1 included alongside it.
+
 ## Tests and generation
 
 ```bash
