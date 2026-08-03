@@ -203,7 +203,7 @@ class _MetricGrid extends StatelessWidget {
             child: MetricCard(
               label: '温度',
               value: _number(status.internalTemperature, 1),
-              unit: '°C',
+              unit: 'F/C',
               icon: Icons.thermostat_outlined,
               accent: AppColors.red,
             ),
@@ -403,13 +403,7 @@ class _DetailTable extends StatelessWidget {
         Text('采集详情', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         _row(context, 'CV / CC', _cvcc(status.cvccState)),
-        _row(
-          context,
-          '保护状态',
-          status.protectionRaw == null
-              ? '未知'
-              : '原始值 0x${status.protectionRaw!.toRadixString(16).padLeft(4, '0').toUpperCase()}',
-        ),
+        _row(context, '保护状态', status.protectionLabel),
         _row(
           context,
           'AH / WH',

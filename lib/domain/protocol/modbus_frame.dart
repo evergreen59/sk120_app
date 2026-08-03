@@ -45,12 +45,9 @@ class ModbusRequest {
     required int startAddress,
     required int quantity,
   }) {
-    _checkU16(slaveAddress, 'slaveAddress');
-    if (slaveAddress < 1 || slaveAddress > 247) {
-      throw ArgumentError.value(slaveAddress, 'slaveAddress', '必须在 1-247 范围内');
-    }
-    if (quantity < 1 || quantity > 125) {
-      throw ArgumentError.value(quantity, 'quantity', '必须在 1-125 范围内');
+    _checkSlaveAddress(slaveAddress);
+    if (quantity < 1 || quantity > 32) {
+      throw ArgumentError.value(quantity, 'quantity', '必须在 1-32 范围内');
     }
     _checkU16(startAddress, 'startAddress');
     return ModbusRequest._(
@@ -66,7 +63,7 @@ class ModbusRequest {
     required int address,
     required int value,
   }) {
-    _checkU16(slaveAddress, 'slaveAddress');
+    _checkSlaveAddress(slaveAddress);
     _checkU16(address, 'address');
     _checkU16(value, 'value');
     return ModbusRequest._(
@@ -83,10 +80,10 @@ class ModbusRequest {
     required int startAddress,
     required List<int> values,
   }) {
-    _checkU16(slaveAddress, 'slaveAddress');
+    _checkSlaveAddress(slaveAddress);
     _checkU16(startAddress, 'startAddress');
-    if (values.isEmpty || values.length > 123) {
-      throw ArgumentError.value(values.length, 'values', '必须包含 1-123 个寄存器');
+    if (values.isEmpty || values.length > 32) {
+      throw ArgumentError.value(values.length, 'values', '必须包含 1-32 个寄存器');
     }
     for (final value in values) {
       _checkU16(value, 'values');
@@ -136,6 +133,12 @@ class ModbusRequest {
   static void _checkU16(int value, String name) {
     if (value < 0 || value > 0xFFFF) {
       throw ArgumentError.value(value, name, '必须在 0-65535 范围内');
+    }
+  }
+
+  static void _checkSlaveAddress(int value) {
+    if (value < 1 || value > 255) {
+      throw ArgumentError.value(value, 'slaveAddress', '必须在 1-255 范围内');
     }
   }
 }

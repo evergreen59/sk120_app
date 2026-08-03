@@ -51,24 +51,23 @@ The generated application id is `com.example.xy_sk120_control`; replace it befor
 
 ## Modbus and register source
 
-Register addresses, scale factors, access flags and M0-M9 layout come from [`XY-SK120-Modbus_Address.md`](XY-SK120-Modbus_Address.md). The implementation provides function codes `0x03`, `0x06` and `0x10`, big-endian register words and CRC16 with initial `0xFFFF`, polynomial `0xA001`, and low CRC byte first on the wire. These framing assumptions are isolated in `lib/domain/protocol` because the supplied address document does not itself specify the RTU framing.
+Register addresses, scale factors, access flags and M0-M9 layout come from [`XY-SK120-Modbus_Address.md`](XY-SK120-Modbus_Address.md). The implementation provides function codes `0x03`, `0x06` and `0x10`, big-endian register words and CRC16 with initial `0xFFFF`, polynomial `0xA001`, and low CRC byte first on the wire. Requests enforce the device limits of 1-32 registers and slave addresses 1-255. The default address is 1 and the default port rate is 115200 baud.
 
-The safety range enforced by both domain and UI is 0-36 V, 0-5 A and 0-120 W. M0-M9 reads cover all 15 documented registers. Writes cover `0x0050`-`0x005D`; `S-ETP` at `0x005E` is deliberately excluded from ordinary writes. Loading a group reads it first, shows a preview, requires confirmation and never enables output implicitly.
+The safety range enforced by both domain and UI is 0-36 V, 0-5 A and 0-120 W. Status refreshes are split into `0x0000`-`0x001F` and `0x0020`-`0x0023`; both reads must succeed before a new status is published. `LOCK`, `PROTECT`, `CVCC`, `ONOFF` and the six `B-LED` levels are decoded according to the manual. `BAUDRATE_L` is treated as an enum code from 0 through 8; code 5 is interpreted as 57600 despite the manual's apparent `576000` typo, and codes 7/8 are marked as partially supported. Unknown protection and baud-rate codes retain their raw value for diagnostics.
+
+The manual says each M0-M9 group contains 14 values but its table lists 15 registers. Reads therefore cover all 15 documented registers. Ordinary writes conservatively cover `0x0050`-`0x005D`; `S-ETP` at `0x005E` remains excluded. Saving a group writes its storage slot. Calling a group is a separate operation that reads and previews the slot, requires confirmation, writes only the group number to `EXTRACT-M` (`0x001D`), and then refreshes current status. The protocol does not guarantee that calling a group preserves output state, so calls are allowed only while output is confirmed off.
 
 ## Unknown protocol fields
 
 The following remain explicit raw/extension points until confirmed against a real XY-SK120:
 
-- `PROTECT` bit meanings
 - `F-C` temperature encoding
-- calibration ranges `0x1000`-`0x100E`
-- self-calibration `0x1500`-`0x1506`
-- OZONE `0x0400`-`0x040B`
 - model and firmware word encoding
-- device-specific validation of output, CV/CC, MPPT, constant-power and `S-INI` encodings
+- `BUZZER`, `MPPT`, `BatFul`, `CW`, `S-INI` and `S-ETP` value semantics
+- calibration, self-calibration, OZONE and Wi-Fi registers that are absent from the newer manual
 - AH/WH units and rollover behavior beyond the documented high/low word composition
 
-Unknown output state is displayed as Unknown and is never rendered as OFF. Calibration, OZONE and other engineering registers are not exposed as ordinary write controls.
+Unknown output state is displayed as Unknown and is never rendered as OFF. Temperatures use the manual's neutral `F/C` unit until `F-C` is confirmed. Calibration, OZONE and other engineering registers are not exposed as ordinary write controls.
 
 ## Local data
 
@@ -82,7 +81,7 @@ flutter analyze
 flutter test
 ```
 
-Tests cover the Modbus CRC and request frames, split/concatenated/exception responses, request serialization, range and address validation, AH/WH composition, Mock safety behavior, Drift CRUD and export round trips, and the initial responsive shell.
+Tests cover all three manual communication examples byte for byte, CRC and word order, split/concatenated/exception responses, request serialization, 1/32 quantity and 1/255 address boundaries, atomic split status refresh, decoded protocol states, data-group save/call separation, Mock safety behavior, settings/group widgets, Drift CRUD and export round trips, and the responsive shell.
 
 ## Builds
 
@@ -98,4 +97,4 @@ Android APK, unsigned iOS and macOS builds can be verified on a macOS host. Wind
 
 ## Real-device checklist
 
-Before release, verify UUID discovery, notification fragmentation and coalescing, read/write echo behavior, Modbus exception and timeout handling, disconnect/reconnect behavior, polling stability, output confirmation, M0-M9 reads and writes, protection values and all five platform permission prompts with a physical device.
+Before release, verify UUID discovery, notification fragmentation and coalescing, read/write echo behavior, Modbus exception and timeout handling, disconnect/reconnect behavior, polling stability and all five platform permission prompts with a physical device. Protocol-specific checks still required are: all 12 protection codes; slave addresses 248-255; baud code 5 as 57600; optional 2400/4800 rates; M0-M9 save and call behavior; output state after `EXTRACT-M`; and BLE behavior after changing serial parameters.

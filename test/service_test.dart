@@ -35,6 +35,41 @@ void main() {
     },
   );
 
+  test('mock settings use documented ranges and baud codes', () async {
+    await device.connect();
+    expect((await device.setBacklight(0)).isSuccess, isTrue);
+    expect((await device.setBacklight(5)).isSuccess, isTrue);
+    expect((await device.setBacklight(6)).isFailure, isTrue);
+    expect((await device.setSlaveAddress(255)).isSuccess, isTrue);
+    expect((await device.setSlaveAddress(256)).isFailure, isTrue);
+    await device.setKeyLock(true);
+    expect(device.status.keyLocked, isTrue);
+    for (final rate in DeviceBaudRate.values) {
+      expect((await device.setBaudRate(rate)).isSuccess, isTrue);
+      expect(device.status.baudRateRaw, rate.code);
+    }
+  });
+
+  test(
+    'activating a group changes current settings without rewriting it',
+    () async {
+      await device.connect();
+      final group = (await device.readDataGroup(
+        9,
+      )).value!.copyWith(voltageSet: 18.5, currentSet: 2.25);
+      await device.writeDataGroup(group);
+      await device.setVoltage(12);
+      expect((await device.activateDataGroup(9)).isSuccess, isTrue);
+      expect(device.status.voltageSet, 18.5);
+      expect(device.status.currentSet, 2.25);
+      expect((await device.activateDataGroup(-1)).isFailure, isTrue);
+      expect((await device.activateDataGroup(10)).isFailure, isTrue);
+      await device.setOutput(true);
+      expect((await device.activateDataGroup(0)).isFailure, isTrue);
+      expect((await device.readDataGroup(9)).value!.voltageSet, 18.5);
+    },
+  );
+
   test(
     'service closes an output session when output changes from on to off',
     () async {

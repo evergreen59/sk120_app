@@ -113,16 +113,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   children: [
                     _SettingRow(
+                      label: '按键锁',
+                      detail: 'LOCK',
+                      trailing: Switch(
+                        key: const ValueKey('key-lock-switch'),
+                        value: status.keyLocked ?? false,
+                        onChanged: status.isConnected
+                            ? notifier.setKeyLock
+                            : null,
+                      ),
+                    ),
+                    _SettingRow(
                       label: '背光亮度',
                       detail: 'B-LED',
                       trailing: SizedBox(
                         width: 170,
                         child: Slider(
-                          value: 70,
+                          key: const ValueKey('backlight-slider'),
+                          value: (status.backlightLevel ?? 0)
+                              .clamp(0, 5)
+                              .toDouble(),
                           min: 0,
-                          max: 100,
-                          divisions: 10,
-                          label: '70',
+                          max: 5,
+                          divisions: 5,
+                          label: '${status.backlightLevel ?? 0}',
                           onChanged: status.isConnected
                               ? (value) => notifier.setBacklight(value.round())
                               : null,
@@ -159,7 +173,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 '从机地址',
                                 status.slaveAddress,
                                 1,
-                                247,
+                                255,
                                 notifier.setSlaveAddress,
                               )
                             : null,
@@ -169,18 +183,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _SettingRow(
                       label: '波特率',
                       detail: 'BAUDRATE_L',
-                      trailing: TextButton(
-                        onPressed: status.isConnected
-                            ? () => _setInteger(
-                                context,
-                                '波特率寄存器值',
-                                status.baudRate ?? 9600,
-                                0,
-                                65535,
-                                notifier.setBaudRate,
-                              )
+                      trailing: DropdownButton<DeviceBaudRate>(
+                        key: const ValueKey('baud-rate-menu'),
+                        value: status.baudRate,
+                        hint: Text(status.baudRateLabel),
+                        onChanged: status.isConnected
+                            ? (value) {
+                                if (value != null) notifier.setBaudRate(value);
+                              }
                             : null,
-                        child: Text(status.baudRate?.toString() ?? '未知'),
+                        items: [
+                          for (final rate in DeviceBaudRate.values)
+                            DropdownMenuItem(
+                              value: rate,
+                              child: Text(rate.label),
+                            ),
+                        ],
                       ),
                     ),
                   ],
@@ -241,9 +259,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       label: '保护寄存器',
                       detail: 'PROTECT',
                       trailing: Text(
-                        status.protectionRaw == null
-                            ? '未知'
-                            : '0x${status.protectionRaw!.toRadixString(16).padLeft(4, '0').toUpperCase()}',
+                        status.protectionLabel,
                         style: const TextStyle(
                           color: AppColors.amber,
                           fontFamily: 'monospace',
@@ -273,7 +289,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'PROTECT 与 F-C 保留原始值，不在界面中猜测 bit 或编码含义。校准区默认不提供普通写入。',
+                      'PROTECT 按说明书状态码显示；F-C 仍保留原始值。校准区默认不提供普通写入。',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],

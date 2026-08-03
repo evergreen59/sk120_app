@@ -321,13 +321,15 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
       _run(() => _service.setOutput(enabled));
   Future<void> setBuzzer(bool enabled) =>
       _run(() => _service.setBuzzer(enabled));
+  Future<void> setKeyLock(bool locked) =>
+      _run(() => _service.setKeyLock(locked));
   Future<void> setBacklight(int level) =>
       _run(() => _service.setBacklight(level));
   Future<void> setSleepMinutes(int minutes) =>
       _run(() => _service.setSleepMinutes(minutes));
   Future<void> setSlaveAddress(int address) =>
       _run(() => _service.setSlaveAddress(address));
-  Future<void> setBaudRate(int baudRate) =>
+  Future<void> setBaudRate(DeviceBaudRate baudRate) =>
       _run(() => _service.setBaudRate(baudRate));
   Future<void> setMppt({required bool enabled, int? coefficient}) =>
       _run(() => _service.setMppt(enabled: enabled, coefficient: coefficient));
@@ -336,7 +338,7 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
     required double watts,
   }) => _run(() => _service.setConstantPower(enabled: enabled, watts: watts));
 
-  Future<void> readGroup(int index) async {
+  Future<DataGroup?> readGroup(int index) async {
     state = state.copyWith(busy: true, clearError: true);
     final result = await _service.readDataGroup(index);
     if (result.isSuccess) {
@@ -348,8 +350,10 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
             .saveGroup(result.value!, deviceId: _service.id),
       );
       state = state.copyWith(groups: groups, busy: false);
+      return result.value;
     } else {
       state = state.copyWith(busy: false, errorMessage: result.error?.message);
+      return null;
     }
   }
 
@@ -368,6 +372,10 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
     } else {
       state = state.copyWith(busy: false, errorMessage: result.error?.message);
     }
+  }
+
+  Future<void> activateGroup(int index) async {
+    await _run(() => _service.activateDataGroup(index));
   }
 
   Future<void> _run(Future<Result<void>> Function() operation) async {

@@ -36,6 +36,10 @@ class MockPowerDevice extends PowerDeviceBase {
         initialStatus: const DeviceStatus(
           outputState: OutputState.off,
           cvccState: CvccState.cv,
+          protectionStatus: ProtectionStatus.normal,
+          protectionRaw: 0,
+          keyLocked: false,
+          backlightLevel: 3,
           voltageSet: 12,
           currentSet: 1.25,
           outputVoltage: 0,
@@ -49,7 +53,8 @@ class MockPowerDevice extends PowerDeviceBase {
           model: 'XY-SK120 Mock',
           firmwareVersion: 'demo-1.0',
           slaveAddress: 1,
-          baudRate: 9600,
+          baudRate: DeviceBaudRate.baud115200,
+          baudRateRaw: 6,
           mpptEnabled: false,
           mpptCoefficient: 0,
           constantPowerEnabled: false,
@@ -213,16 +218,46 @@ class MockPowerDevice extends PowerDeviceBase {
   }
 
   @override
+  Future<Result<void>> activateDataGroup(int index) async {
+    if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
+    if (index < 0 || index >= _groups.length) {
+      return failure(ErrorCode.invalidRegisterValue, '数据组编号无效');
+    }
+    if (status.outputState != OutputState.off) {
+      return failure(ErrorCode.deviceNotReady, '仅可在输出关闭时调用数据组');
+    }
+    final group = _groups[index];
+    emitStatus(
+      status.copyWith(
+        voltageSet: group.voltageSet,
+        currentSet: group.currentSet,
+      ),
+    );
+    final refreshed = await readStatus();
+    return refreshed.isSuccess
+        ? const Success(null)
+        : Failure(refreshed.error!);
+  }
+
+  @override
   Future<Result<void>> setBuzzer(bool enabled) async {
     if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
     return const Success(null);
   }
 
   @override
+  Future<Result<void>> setKeyLock(bool locked) async {
+    if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
+    emitStatus(status.copyWith(keyLocked: locked));
+    return const Success(null);
+  }
+
+  @override
   Future<Result<void>> setBacklight(int level) async {
-    if (!status.isConnected || level < 0 || level > 100) {
+    if (!status.isConnected || level < 0 || level > 5) {
       return failure(ErrorCode.invalidRegisterValue, '背光等级无效');
     }
+    emitStatus(status.copyWith(backlightLevel: level));
     return const Success(null);
   }
 
@@ -236,19 +271,17 @@ class MockPowerDevice extends PowerDeviceBase {
 
   @override
   Future<Result<void>> setSlaveAddress(int address) async {
-    if (!status.isConnected || address < 1 || address > 247) {
-      return failure(ErrorCode.invalidRegisterValue, '从机地址必须在 1-247');
+    if (!status.isConnected || address < 1 || address > 255) {
+      return failure(ErrorCode.invalidRegisterValue, '从机地址必须在 1-255');
     }
     emitStatus(status.copyWith(slaveAddress: address));
     return const Success(null);
   }
 
   @override
-  Future<Result<void>> setBaudRate(int baudRate) async {
-    if (!status.isConnected || baudRate < 0 || baudRate > 65535) {
-      return failure(ErrorCode.invalidRegisterValue, '波特率寄存器值无效');
-    }
-    emitStatus(status.copyWith(baudRate: baudRate));
+  Future<Result<void>> setBaudRate(DeviceBaudRate baudRate) async {
+    if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
+    emitStatus(status.copyWith(baudRate: baudRate, baudRateRaw: baudRate.code));
     return const Success(null);
   }
 

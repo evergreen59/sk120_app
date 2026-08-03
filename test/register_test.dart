@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:xy_sk120_control/domain/protocol/registers.dart';
+import 'package:xy_sk120_control/domain/models/device_models.dart';
 
 void main() {
   test('encodes and validates the fixed safe ranges', () {
@@ -50,5 +51,42 @@ void main() {
     expect(RegisterCatalog.isEngineeringAddress(0x100E), isTrue);
     expect(RegisterCatalog.isEngineeringAddress(0x1506), isTrue);
     expect(RegisterCatalog.isEngineeringAddress(0x0050), isFalse);
+  });
+
+  test(
+    'decodes every documented protection status and preserves unknown codes',
+    () {
+      for (var code = 0; code <= 11; code++) {
+        final status = ProtectionStatus.fromCode(code);
+        expect(status, isNotNull);
+        expect(status!.code, code);
+        expect(status.abbreviation, isNotEmpty);
+      }
+      expect(ProtectionStatus.fromCode(12), isNull);
+      expect(
+        const DeviceStatus(protectionRaw: 99).protectionLabel,
+        '未知（原始码 99）',
+      );
+    },
+  );
+
+  test('maps all baud-rate register codes including corrected code 5', () {
+    expect(DeviceBaudRate.values.map((rate) => rate.code), [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+    ]);
+    expect(DeviceBaudRate.fromCode(5)?.bitsPerSecond, 57600);
+    expect(DeviceBaudRate.fromCode(6)?.bitsPerSecond, 115200);
+    expect(DeviceBaudRate.fromCode(7)?.partiallySupported, isTrue);
+    expect(DeviceBaudRate.fromCode(8)?.partiallySupported, isTrue);
+    expect(DeviceBaudRate.fromCode(9), isNull);
+    expect(const DeviceStatus(baudRateRaw: 99).baudRateLabel, '未知代码 99');
   });
 }

@@ -17,7 +17,11 @@ class RealPowerDevice extends PowerDeviceBase {
          id: deviceId,
          name: 'XY-SK120',
          mode: DeviceMode.real,
-         initialStatus: const DeviceStatus(slaveAddress: 1),
+         initialStatus: const DeviceStatus(
+           slaveAddress: 1,
+           baudRate: DeviceBaudRate.baud115200,
+           baudRateRaw: 6,
+         ),
        ) {
     _connectionSubscription = _transport.connectionStates.listen((
       connectionState,
@@ -80,20 +84,33 @@ class RealPowerDevice extends PowerDeviceBase {
   @override
   Future<Result<DeviceStatus>> readStatus() async {
     if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
-    final result = await _client.readRegisters(
+    final firstResult = await _client.readRegisters(
       PowerRegister.voltageSet.address,
-      36,
+      32,
     );
-    if (result.isFailure) return Failure(result.error!);
-    final values = result.value!;
-    if (values.length < 36) {
+    if (firstResult.isFailure) return Failure(firstResult.error!);
+    if (firstResult.value!.length != 32) {
       return failure(ErrorCode.modbusException, '设备返回的基础状态寄存器不足');
     }
+    final secondResult = await _client.readRegisters(
+      PowerRegister.mpptCoefficient.address,
+      4,
+    );
+    if (secondResult.isFailure) return Failure(secondResult.error!);
+    if (secondResult.value!.length != 4) {
+      return failure(ErrorCode.modbusException, '设备返回的扩展状态寄存器不足');
+    }
+    final values = [...firstResult.value!, ...secondResult.value!];
+    final protectionRaw = values[PowerRegister.protect.address];
+    final baudRateRaw = values[PowerRegister.baudRate.address];
     final next = DeviceStatus(
       connectionState: DeviceConnectionState.connected,
       outputState: _outputState(values[PowerRegister.output.address]),
       cvccState: _cvccState(values[PowerRegister.cvcc.address]),
-      protectionRaw: values[PowerRegister.protect.address],
+      protectionStatus: ProtectionStatus.fromCode(protectionRaw),
+      protectionRaw: protectionRaw,
+      keyLocked: _binary(values[PowerRegister.lock.address]),
+      backlightLevel: values[PowerRegister.backlight.address],
       voltageSet: RegisterCatalog.decodeVoltage(
         values[PowerRegister.voltageSet.address],
       ),
@@ -132,7 +149,8 @@ class RealPowerDevice extends PowerDeviceBase {
       model: _rawWord(values[PowerRegister.model.address]),
       firmwareVersion: _rawWord(values[PowerRegister.version.address]),
       slaveAddress: values[PowerRegister.slaveAddress.address],
-      baudRate: values[PowerRegister.baudRate.address],
+      baudRate: DeviceBaudRate.fromCode(baudRateRaw),
+      baudRateRaw: baudRateRaw,
       mpptEnabled: _binary(values[PowerRegister.mpptSwitch.address]),
       mpptCoefficient: values[PowerRegister.mpptCoefficient.address],
       constantPowerEnabled: _binary(
@@ -226,15 +244,50 @@ class RealPowerDevice extends PowerDeviceBase {
   }
 
   @override
+  Future<Result<void>> activateDataGroup(int index) async {
+    if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
+    if (index < 0 || index >= RegisterCatalog.dataGroupCount) {
+      return failure(ErrorCode.invalidRegisterValue, '数据组编号无效');
+    }
+    if (status.outputState != OutputState.off) {
+      return failure(ErrorCode.deviceNotReady, '仅可在输出关闭时调用数据组');
+    }
+    final result = await _client.writeRegister(
+      PowerRegister.extractMemory.address,
+      index,
+    );
+    if (result.isFailure) return result;
+    final refreshed = await readStatus();
+    return refreshed.isSuccess
+        ? const Success(null)
+        : Failure(refreshed.error!);
+  }
+
+  @override
   Future<Result<void>> setBuzzer(bool enabled) =>
       _client.writeRegister(PowerRegister.buzzer.address, enabled ? 1 : 0);
 
   @override
+  Future<Result<void>> setKeyLock(bool locked) async {
+    final result = await _client.writeRegister(
+      PowerRegister.lock.address,
+      locked ? 1 : 0,
+    );
+    if (result.isSuccess) emitStatus(status.copyWith(keyLocked: locked));
+    return result;
+  }
+
+  @override
   Future<Result<void>> setBacklight(int level) async {
-    if (level < 0 || level > 100) {
-      return failure<void>(ErrorCode.invalidRegisterValue, '背光等级必须在 0-100');
+    if (level < 0 || level > 5) {
+      return failure<void>(ErrorCode.invalidRegisterValue, '背光等级必须在 0-5');
     }
-    return _client.writeRegister(PowerRegister.backlight.address, level);
+    final result = await _client.writeRegister(
+      PowerRegister.backlight.address,
+      level,
+    );
+    if (result.isSuccess) emitStatus(status.copyWith(backlightLevel: level));
+    return result;
   }
 
   @override
@@ -247,8 +300,8 @@ class RealPowerDevice extends PowerDeviceBase {
 
   @override
   Future<Result<void>> setSlaveAddress(int address) async {
-    if (address < 1 || address > 247) {
-      return failure<void>(ErrorCode.invalidRegisterValue, '从机地址必须在 1-247');
+    if (address < 1 || address > 255) {
+      return failure<void>(ErrorCode.invalidRegisterValue, '从机地址必须在 1-255');
     }
     final result = await _client.writeRegister(
       PowerRegister.slaveAddress.address,
@@ -262,15 +315,16 @@ class RealPowerDevice extends PowerDeviceBase {
   }
 
   @override
-  Future<Result<void>> setBaudRate(int baudRate) async {
-    if (baudRate < 0 || baudRate > 65535) {
-      return failure<void>(ErrorCode.invalidRegisterValue, '波特率寄存器值无效');
-    }
+  Future<Result<void>> setBaudRate(DeviceBaudRate baudRate) async {
     final result = await _client.writeRegister(
       PowerRegister.baudRate.address,
-      baudRate,
+      baudRate.code,
     );
-    if (result.isSuccess) emitStatus(status.copyWith(baudRate: baudRate));
+    if (result.isSuccess) {
+      emitStatus(
+        status.copyWith(baudRate: baudRate, baudRateRaw: baudRate.code),
+      );
+    }
     return result;
   }
 

@@ -22,11 +22,13 @@ abstract interface class PowerDevice {
   Future<Result<void>> setOutput(bool enabled);
   Future<Result<DataGroup>> readDataGroup(int index);
   Future<Result<void>> writeDataGroup(DataGroup group);
+  Future<Result<void>> activateDataGroup(int index);
   Future<Result<void>> setBuzzer(bool enabled);
+  Future<Result<void>> setKeyLock(bool locked);
   Future<Result<void>> setBacklight(int level);
   Future<Result<void>> setSleepMinutes(int minutes);
   Future<Result<void>> setSlaveAddress(int address);
-  Future<Result<void>> setBaudRate(int baudRate);
+  Future<Result<void>> setBaudRate(DeviceBaudRate baudRate);
   Future<Result<void>> setMppt({required bool enabled, int? coefficient});
   Future<Result<void>> setConstantPower({
     required bool enabled,
@@ -87,6 +89,14 @@ abstract class PowerDeviceBase implements PowerDevice {
       failure(ErrorCode.deviceNotReady, '当前设备不支持蜂鸣器设置');
 
   @override
+  Future<Result<void>> setKeyLock(bool locked) async =>
+      failure(ErrorCode.deviceNotReady, '当前设备不支持按键锁设置');
+
+  @override
+  Future<Result<void>> activateDataGroup(int index) async =>
+      failure(ErrorCode.deviceNotReady, '当前设备不支持调用数据组');
+
+  @override
   Future<Result<void>> setBacklight(int level) async =>
       failure(ErrorCode.deviceNotReady, '当前设备不支持背光设置');
 
@@ -99,7 +109,7 @@ abstract class PowerDeviceBase implements PowerDevice {
       failure(ErrorCode.deviceNotReady, '当前设备不支持从机地址设置');
 
   @override
-  Future<Result<void>> setBaudRate(int baudRate) async =>
+  Future<Result<void>> setBaudRate(DeviceBaudRate baudRate) async =>
       failure(ErrorCode.deviceNotReady, '当前设备不支持波特率设置');
 
   @override
@@ -277,13 +287,16 @@ class PowerDeviceService {
       device.readDataGroup(index);
   Future<Result<void>> writeDataGroup(DataGroup group) =>
       device.writeDataGroup(group);
+  Future<Result<void>> activateDataGroup(int index) =>
+      device.activateDataGroup(index);
   Future<Result<void>> setBuzzer(bool enabled) => device.setBuzzer(enabled);
+  Future<Result<void>> setKeyLock(bool locked) => device.setKeyLock(locked);
   Future<Result<void>> setBacklight(int level) => device.setBacklight(level);
   Future<Result<void>> setSleepMinutes(int minutes) =>
       device.setSleepMinutes(minutes);
   Future<Result<void>> setSlaveAddress(int address) =>
       device.setSlaveAddress(address);
-  Future<Result<void>> setBaudRate(int baudRate) =>
+  Future<Result<void>> setBaudRate(DeviceBaudRate baudRate) =>
       device.setBaudRate(baudRate);
   Future<Result<void>> setMppt({required bool enabled, int? coefficient}) =>
       device.setMppt(enabled: enabled, coefficient: coefficient);

@@ -17,6 +17,68 @@ enum CvccState { cv, cc, unknown }
 
 enum TemperatureUnit { celsius, fahrenheit }
 
+enum ProtectionStatus {
+  normal(0, '正常', 'NORMAL'),
+  overVoltage(1, '过压保护', 'OVP'),
+  overCurrent(2, '过流保护', 'OCP'),
+  overPower(3, '过功率保护', 'OPP'),
+  lowInputVoltage(4, '输入低压保护', 'LVP'),
+  maxOutputCapacity(5, '最大输出容量保护', 'OAH'),
+  maxOutputTime(6, '最大输出时间保护', 'OHP'),
+  overTemperature(7, '过温保护', 'OTP'),
+  noOutput(8, '无输出保护', 'OEP'),
+  maxOutputEnergy(9, '最大输出能量保护', 'OWH'),
+  maxInputCurrent(10, '最大输入电流保护', 'ICP'),
+  externalTemperature(11, '外部温度保护', 'ETP');
+
+  const ProtectionStatus(this.code, this.label, this.abbreviation);
+
+  final int code;
+  final String label;
+  final String abbreviation;
+
+  String get displayLabel => '$label ($abbreviation)';
+
+  static ProtectionStatus? fromCode(int code) {
+    for (final status in values) {
+      if (status.code == code) return status;
+    }
+    return null;
+  }
+}
+
+enum DeviceBaudRate {
+  baud9600(0, 9600),
+  baud14400(1, 14400),
+  baud19200(2, 19200),
+  baud38400(3, 38400),
+  baud56000(4, 56000),
+  baud57600(5, 57600),
+  baud115200(6, 115200),
+  baud2400(7, 2400, partiallySupported: true),
+  baud4800(8, 4800, partiallySupported: true);
+
+  const DeviceBaudRate(
+    this.code,
+    this.bitsPerSecond, {
+    this.partiallySupported = false,
+  });
+
+  final int code;
+  final int bitsPerSecond;
+  final bool partiallySupported;
+
+  String get label =>
+      partiallySupported ? '$bitsPerSecond（部分设备）' : '$bitsPerSecond';
+
+  static DeviceBaudRate? fromCode(int code) {
+    for (final rate in values) {
+      if (rate.code == code) return rate;
+    }
+    return null;
+  }
+}
+
 class BleDeviceInfo {
   const BleDeviceInfo({
     required this.id,
@@ -36,7 +98,10 @@ class DeviceStatus {
     this.connectionState = DeviceConnectionState.disconnected,
     this.outputState = OutputState.unknown,
     this.cvccState = CvccState.unknown,
+    this.protectionStatus,
     this.protectionRaw,
+    this.keyLocked,
+    this.backlightLevel,
     this.voltageSet,
     this.currentSet,
     this.outputVoltage,
@@ -52,6 +117,7 @@ class DeviceStatus {
     this.firmwareVersion,
     this.slaveAddress = 1,
     this.baudRate,
+    this.baudRateRaw,
     this.mpptEnabled,
     this.mpptCoefficient,
     this.constantPowerEnabled,
@@ -62,7 +128,10 @@ class DeviceStatus {
   final DeviceConnectionState connectionState;
   final OutputState outputState;
   final CvccState cvccState;
+  final ProtectionStatus? protectionStatus;
   final int? protectionRaw;
+  final bool? keyLocked;
+  final int? backlightLevel;
   final double? voltageSet;
   final double? currentSet;
   final double? outputVoltage;
@@ -77,7 +146,8 @@ class DeviceStatus {
   final String? model;
   final String? firmwareVersion;
   final int slaveAddress;
-  final int? baudRate;
+  final DeviceBaudRate? baudRate;
+  final int? baudRateRaw;
   final bool? mpptEnabled;
   final int? mpptCoefficient;
   final bool? constantPowerEnabled;
@@ -85,13 +155,29 @@ class DeviceStatus {
   final DateTime? lastUpdated;
 
   bool get isConnected => connectionState == DeviceConnectionState.connected;
-  bool get protectionKnown => protectionRaw != null;
+  bool get protectionKnown => protectionStatus != null;
+  String get protectionLabel {
+    final decoded = protectionStatus;
+    if (decoded != null) return decoded.displayLabel;
+    final raw = protectionRaw;
+    return raw == null ? '未知' : '未知（原始码 $raw）';
+  }
+
+  String get baudRateLabel {
+    final decoded = baudRate;
+    if (decoded != null) return decoded.label;
+    final raw = baudRateRaw;
+    return raw == null ? '未知' : '未知代码 $raw';
+  }
 
   DeviceStatus copyWith({
     DeviceConnectionState? connectionState,
     OutputState? outputState,
     CvccState? cvccState,
+    ProtectionStatus? protectionStatus,
     int? protectionRaw,
+    bool? keyLocked,
+    int? backlightLevel,
     double? voltageSet,
     double? currentSet,
     double? outputVoltage,
@@ -106,7 +192,8 @@ class DeviceStatus {
     String? model,
     String? firmwareVersion,
     int? slaveAddress,
-    int? baudRate,
+    DeviceBaudRate? baudRate,
+    int? baudRateRaw,
     bool? mpptEnabled,
     int? mpptCoefficient,
     bool? constantPowerEnabled,
@@ -117,7 +204,10 @@ class DeviceStatus {
       connectionState: connectionState ?? this.connectionState,
       outputState: outputState ?? this.outputState,
       cvccState: cvccState ?? this.cvccState,
+      protectionStatus: protectionStatus ?? this.protectionStatus,
       protectionRaw: protectionRaw ?? this.protectionRaw,
+      keyLocked: keyLocked ?? this.keyLocked,
+      backlightLevel: backlightLevel ?? this.backlightLevel,
       voltageSet: voltageSet ?? this.voltageSet,
       currentSet: currentSet ?? this.currentSet,
       outputVoltage: outputVoltage ?? this.outputVoltage,
@@ -133,6 +223,7 @@ class DeviceStatus {
       firmwareVersion: firmwareVersion ?? this.firmwareVersion,
       slaveAddress: slaveAddress ?? this.slaveAddress,
       baudRate: baudRate ?? this.baudRate,
+      baudRateRaw: baudRateRaw ?? this.baudRateRaw,
       mpptEnabled: mpptEnabled ?? this.mpptEnabled,
       mpptCoefficient: mpptCoefficient ?? this.mpptCoefficient,
       constantPowerEnabled: constantPowerEnabled ?? this.constantPowerEnabled,

@@ -362,7 +362,7 @@ class _ConnectedDashboard extends ConsumerWidget {
             MetricCard(
               label: '内部温度',
               value: _number(status.internalTemperature, 1),
-              unit: '°C',
+              unit: 'F/C',
               icon: Icons.thermostat_outlined,
               accent: AppColors.amber,
             ),
@@ -390,12 +390,7 @@ class _ConnectedDashboard extends ConsumerWidget {
               Text('运行模式', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               _InfoLine(label: 'CV / CC', value: _cvccLabel(status.cvccState)),
-              _InfoLine(
-                label: '保护原始值',
-                value: status.protectionRaw == null
-                    ? '未知'
-                    : '0x${status.protectionRaw!.toRadixString(16).padLeft(4, '0').toUpperCase()}',
-              ),
+              _InfoLine(label: '保护状态', value: status.protectionLabel),
               _InfoLine(label: '输出时长', value: _duration(status.outputDuration)),
             ],
           ),

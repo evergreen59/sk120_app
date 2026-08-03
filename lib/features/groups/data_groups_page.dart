@@ -192,7 +192,7 @@ class _SafetyNote extends StatelessWidget {
         SizedBox(width: 9),
         Expanded(
           child: Text(
-            '输出开启时不能写入数据组。关闭输出后再执行加载。',
+            '输出开启时不能保存或调用数据组。请先关闭输出。',
             style: TextStyle(color: AppColors.text, fontSize: 12),
           ),
         ),
@@ -207,8 +207,8 @@ Future<void> _loadGroup(
   DataGroup group,
 ) async {
   final notifier = ref.read(deviceStateProvider.notifier);
-  await notifier.readGroup(group.index);
-  final latest = ref.read(deviceStateProvider).groups[group.index];
+  final latest = await notifier.readGroup(group.index);
+  if (latest == null) return;
   if (!context.mounted) return;
   final confirmed = await showDialog<bool>(
     context: context,
@@ -218,7 +218,7 @@ Future<void> _loadGroup(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('以下参数将写入设备当前设定，不会自动开启输出。'),
+          const Text('确认后将通过 EXTRACT-M 调用该组。当前设定会改变，协议未说明调用后的输出状态。'),
           const SizedBox(height: 14),
           Text('电压：${latest.voltageSet?.toStringAsFixed(3) ?? '--'} V'),
           Text('电流：${latest.currentSet?.toStringAsFixed(3) ?? '--'} A'),
@@ -240,7 +240,7 @@ Future<void> _loadGroup(
       ],
     ),
   );
-  if (confirmed == true) await notifier.writeGroup(latest);
+  if (confirmed == true) await notifier.activateGroup(latest.index);
 }
 
 Future<void> _editGroup(
