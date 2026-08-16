@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:xy_sk120_control/core/errors/app_error.dart';
 import 'package:xy_sk120_control/core/result/result.dart';
 import 'package:xy_sk120_control/domain/models/device_models.dart';
 import 'package:xy_sk120_control/domain/protocol/modbus_client.dart';
@@ -160,6 +161,136 @@ void main() {
       await transport.dispose();
     },
   );
+
+  test('covers command setters, groups and validation boundaries', () async {
+    final transport = _DeviceTransport();
+    final device = _deviceFor(transport);
+    await device.connect();
+    await device.readStatus();
+
+    expect((await device.setVoltage(12)).isSuccess, isTrue);
+    expect(
+      (await device.setVoltage(36.01)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect((await device.setCurrent(1.25)).isSuccess, isTrue);
+    expect(
+      (await device.setCurrent(5.01)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect((await device.setOutput(true)).isSuccess, isTrue);
+    expect((await device.setBuzzer(false)).isSuccess, isTrue);
+    expect((await device.setSleepMinutes(65535)).isSuccess, isTrue);
+    expect(
+      (await device.setSleepMinutes(65536)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect((await device.setSlaveAddress(42)).isSuccess, isTrue);
+    expect(device.status.slaveAddress, 42);
+    expect(
+      (await device.setSlaveAddress(0)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect(
+      (await device.setMppt(enabled: true, coefficient: 17)).isSuccess,
+      isTrue,
+    );
+    expect((await device.setMppt(enabled: false)).isSuccess, isTrue);
+    expect(
+      (await device.setConstantPower(enabled: true, watts: 40)).isSuccess,
+      isTrue,
+    );
+    expect(
+      (await device.setConstantPower(enabled: true, watts: -1)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect(
+      (await device.setConstantPower(enabled: true, watts: 121)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect(
+      (await device.setConstantPower(
+        enabled: true,
+        watts: double.nan,
+      )).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+
+    transport.registers[0x50] = 1850;
+    transport.registers[0x51] = 2250;
+    transport.registers[0x52] = 900;
+    transport.registers[0x53] = 3000;
+    transport.registers[0x54] = 1250;
+    transport.registers[0x55] = 200;
+    transport.registers[0x56] = 1;
+    transport.registers[0x57] = 2;
+    transport.registers[0x58] = 0x1234;
+    transport.registers[0x59] = 0x5678;
+    transport.registers[0x5A] = 0x2345;
+    transport.registers[0x5B] = 0x6789;
+    transport.registers[0x5C] = 70;
+    transport.registers[0x5D] = 1;
+    transport.registers[0x5E] = 80;
+    final group = await device.readDataGroup(0);
+    expect(group.isSuccess, isTrue);
+    expect(group.value?.voltageSet, 18.5);
+    expect(group.value?.currentSet, 2.25);
+    expect(group.value?.maxOutputAh, 0x56781234);
+    expect(group.value?.maxOutputWh, 0x67892345);
+    expect(
+      (await device.readDataGroup(-1)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect(
+      (await device.readDataGroup(10)).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    expect(
+      (await device.writeDataGroup(const DataGroup(index: 10))).error?.code,
+      ErrorCode.invalidRegisterValue,
+    );
+    await device.setOutput(false);
+    expect(
+      (await device.writeDataGroup(
+        const DataGroup(index: 0, voltageSet: 18.5, currentSet: 2.25),
+      )).isSuccess,
+      isTrue,
+    );
+    await device.dispose();
+    await transport.dispose();
+  });
+
+  test(
+    'connect reports failures at each BLE setup stage and read length errors',
+    () async {
+      final transport = _DeviceTransport(failConnect: true);
+      final device = _deviceFor(transport);
+      expect((await device.connect()).isFailure, isTrue);
+      expect(device.status.connectionState, DeviceConnectionState.error);
+      await device.dispose();
+      await transport.dispose();
+
+      final discoveryTransport = _DeviceTransport(failDiscover: true);
+      final discoveryDevice = _deviceFor(discoveryTransport);
+      expect((await discoveryDevice.connect()).isFailure, isTrue);
+      await discoveryDevice.dispose();
+      await discoveryTransport.dispose();
+
+      final subscribeTransport = _DeviceTransport(failSubscribe: true);
+      final subscribeDevice = _deviceFor(subscribeTransport);
+      expect((await subscribeDevice.connect()).isFailure, isTrue);
+      await subscribeDevice.dispose();
+      await subscribeTransport.dispose();
+
+      final shortTransport = _DeviceTransport(shortSecondRead: true);
+      final shortDevice = _deviceFor(shortTransport);
+      await shortDevice.connect();
+      final result = await shortDevice.readStatus();
+      expect(result.error?.code, ErrorCode.modbusException);
+      await shortDevice.dispose();
+      await shortTransport.dispose();
+    },
+  );
 }
 
 RealPowerDevice _deviceFor(_DeviceTransport transport) => RealPowerDevice(
@@ -172,7 +303,13 @@ RealPowerDevice _deviceFor(_DeviceTransport transport) => RealPowerDevice(
 );
 
 class _DeviceTransport implements BleTransport {
-  _DeviceTransport({this.failSecondRead = false}) {
+  _DeviceTransport({
+    this.failSecondRead = false,
+    this.failConnect = false,
+    this.failDiscover = false,
+    this.failSubscribe = false,
+    this.shortSecondRead = false,
+  }) {
     registers[0] = 1200;
     registers[1] = 1250;
     registers[5] = 2410;
@@ -182,7 +319,11 @@ class _DeviceTransport implements BleTransport {
   }
 
   final bool failSecondRead;
-  final List<int> registers = List.filled(36, 0);
+  final bool failConnect;
+  final bool failDiscover;
+  final bool failSubscribe;
+  final bool shortSecondRead;
+  final List<int> registers = List.filled(0x100, 0);
   final List<List<int>> writes = [];
   final List<({int start, int quantity})> readRequests = [];
   final StreamController<List<int>> _incoming =
@@ -203,7 +344,9 @@ class _DeviceTransport implements BleTransport {
   Future<Result<void>> stopScan() async => const Success(null);
 
   @override
-  Future<Result<void>> connect(String deviceId) async => const Success(null);
+  Future<Result<void>> connect(String deviceId) async => failConnect
+      ? const Failure(AppError(code: ErrorCode.bleError, message: 'connect'))
+      : const Success(null);
 
   @override
   Future<Result<void>> reconnect(String deviceId) async => const Success(null);
@@ -212,10 +355,14 @@ class _DeviceTransport implements BleTransport {
   Future<Result<void>> disconnect() async => const Success(null);
 
   @override
-  Future<Result<void>> discoverServices() async => const Success(null);
+  Future<Result<void>> discoverServices() async => failDiscover
+      ? const Failure(AppError(code: ErrorCode.bleError, message: 'discover'))
+      : const Success(null);
 
   @override
-  Future<Result<void>> subscribe() async => const Success(null);
+  Future<Result<void>> subscribe() async => failSubscribe
+      ? const Failure(AppError(code: ErrorCode.bleError, message: 'subscribe'))
+      : const Success(null);
 
   @override
   Future<Result<void>> writeFrame(List<int> bytes) async {
@@ -226,8 +373,12 @@ class _DeviceTransport implements BleTransport {
       final quantity = (bytes[4] << 8) | bytes[5];
       readRequests.add((start: start, quantity: quantity));
       if (failSecondRead && start == 32) return const Success(null);
-      final payload = <int>[1, 3, quantity * 2];
-      for (final value in registers.sublist(start, start + quantity)) {
+      final end = shortSecondRead && start == 32
+          ? start + quantity - 1
+          : start + quantity;
+      final values = registers.sublist(start, end);
+      final payload = <int>[bytes[0], 3, values.length * 2];
+      for (final value in values) {
         payload.addAll([(value >> 8) & 0xFF, value & 0xFF]);
       }
       scheduleMicrotask(() => _incoming.add(withModbusCrc(payload)));

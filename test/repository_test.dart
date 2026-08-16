@@ -91,4 +91,29 @@ void main() {
     await repository.setSetting('favorite_ble_device_ids', '[]');
     expect(await repository.getSetting('favorite_ble_device_ids'), '[]');
   });
+
+  test('upserts device metadata without duplicating the primary key', () async {
+    await repository.saveDevice(
+      id: 'device-1',
+      name: 'XY-SK120',
+      model: 'SK120',
+      firmwareVersion: '1.0',
+      bleDeviceId: 'ble-1',
+      rssi: -42,
+      mode: DeviceMode.real,
+    );
+    await repository.saveDevice(
+      id: 'device-1',
+      name: 'XY-SK120 updated',
+      model: 'SK120',
+      firmwareVersion: '1.1',
+      bleDeviceId: 'ble-1',
+      rssi: -30,
+      mode: DeviceMode.real,
+    );
+    final row = await database.select(database.devices).getSingle();
+    expect(row.name, 'XY-SK120 updated');
+    expect(row.firmwareVersion, '1.1');
+    expect(row.lastRssi, -30);
+  });
 }

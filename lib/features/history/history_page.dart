@@ -30,7 +30,9 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return ref.read(localRepositoryProvider).loadSessions(service.id);
   }
 
-  void _refresh() => setState(() => _sessions = _load());
+  void _refresh() => setState(() {
+    _sessions = _load();
+  });
 
   @override
   Widget build(BuildContext context) => Scaffold(

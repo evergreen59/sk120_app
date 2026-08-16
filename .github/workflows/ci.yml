@@ -53,7 +53,14 @@ jobs:
         run: flutter analyze
 
       - name: Run tests with coverage
-        run: flutter test --coverage
+        run: flutter test --coverage --branch-coverage
+
+      - name: Enforce coverage threshold
+        run: |
+          dart run tool/check_coverage.dart coverage/lcov.info \
+            --min-line 70 \
+            --min-branch 60 \
+            --exclude-suffix .g.dart
 
       - name: Upload coverage
         if: always()

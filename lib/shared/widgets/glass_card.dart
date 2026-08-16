@@ -87,9 +87,12 @@ void showGlassToast(
             children: [
               Icon(Icons.check_circle_rounded, color: color, size: 18),
               const SizedBox(width: 8),
-              Text(
-                message,
-                style: TextStyle(color: color, fontWeight: FontWeight.w700),
+              Flexible(
+                child: Text(
+                  message,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
