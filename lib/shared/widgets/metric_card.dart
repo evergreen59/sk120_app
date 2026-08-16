@@ -24,6 +24,7 @@ class MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassCard(
     padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+    color: accent.withValues(alpha: 0.08),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,6 +51,7 @@ class MetricCard extends StatelessWidget {
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   color: accent,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               const SizedBox(width: 5),

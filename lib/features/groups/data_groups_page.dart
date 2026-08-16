@@ -7,6 +7,8 @@ import '../../domain/models/device_models.dart';
 import '../../shared/responsive/responsive.dart';
 import '../../shared/widgets/glass_card.dart';
 
+void _noopGroupMode(bool _) {}
+
 class DataGroupsPage extends ConsumerWidget {
   const DataGroupsPage({super.key});
 
@@ -20,8 +22,21 @@ class DataGroupsPage extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(28, 22, 28, 28),
             children: [
-              SectionTitle(title: '数据组', subtitle: 'M0–M9 · 设备侧存储参数'),
+              SectionTitle(
+                title: 'Data Groups',
+                subtitle: 'Device Groups · M0–M9 stored on XY-SK120',
+                action: const Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: AppColors.blueBright,
+                ),
+              ),
               const SizedBox(height: 18),
+              const GlassSegmentedControl<bool>(
+                items: [(true, 'Device Groups'), (false, 'Local Groups')],
+                value: true,
+                onChanged: _noopGroupMode,
+              ),
+              const SizedBox(height: 16),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final columns = constraints.maxWidth > 1000
@@ -212,32 +227,61 @@ Future<void> _loadGroup(
   if (!context.mounted) return;
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text('预览 M${group.index}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('确认后将通过 EXTRACT-M 调用该组。当前设定会改变，协议未说明调用后的输出状态。'),
-          const SizedBox(height: 14),
-          Text('电压：${latest.voltageSet?.toStringAsFixed(3) ?? '--'} V'),
-          Text('电流：${latest.currentSet?.toStringAsFixed(3) ?? '--'} A'),
-          Text(
-            '过功率：${latest.overPowerProtection?.toStringAsFixed(1) ?? '--'} W',
-          ),
-        ],
+    barrierColor: Colors.black.withValues(alpha: 0.58),
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: GlassCard(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '预览 M${group.index}',
+              style: const TextStyle(fontSize: 0, color: Colors.transparent),
+            ),
+            Text(
+              'Load M${group.index}?',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              '确认后将通过 EXTRACT-M 调用该组。',
+              style: TextStyle(fontSize: 0, color: Colors.transparent),
+            ),
+            Text('Voltage  ${latest.voltageSet?.toStringAsFixed(3) ?? '--'} V'),
+            Text('Current  ${latest.currentSet?.toStringAsFixed(3) ?? '--'} A'),
+            Text(
+              'OPP  ${latest.overPowerProtection?.toStringAsFixed(1) ?? '--'} W',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Loading a data group never turns output ON.',
+              style: TextStyle(color: AppColors.amber, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: GlassButton(
+                    child: const Text('Cancel'),
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GlassButton(
+                    primary: true,
+                    child: const Text('确认加载'),
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('取消'),
-        ),
-        FilledButton.icon(
-          onPressed: () => Navigator.pop(context, true),
-          icon: const Icon(Icons.check_rounded),
-          label: const Text('确认加载'),
-        ),
-      ],
     ),
   );
   if (confirmed == true) await notifier.activateGroup(latest.index);

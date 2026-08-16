@@ -5,18 +5,24 @@ abstract final class AppFonts {
 }
 
 abstract final class AppColors {
-  static const background = Color(0xFF081017);
-  static const surface = Color(0xFF101C25);
-  static const surfaceRaised = Color(0xFF162631);
-  static const border = Color(0xFF29414E);
-  static const electricBlue = Color(0xFF4EA1FF);
-  static const cyan = Color(0xFF3DE0D0);
-  static const green = Color(0xFF65D995);
-  static const amber = Color(0xFFFFC857);
-  static const red = Color(0xFFFF6B75);
-  static const text = Color(0xFFE9F3F7);
-  static const muted = Color(0xFF93AAB5);
-  static const dim = Color(0xFF647A84);
+  static const background = Color(0xFF05070F);
+  static const backgroundMid = Color(0xFF0A0F1E);
+  static const backgroundLight = Color(0xFF0E1730);
+  static const surface = Color(0x0FFFFFFF);
+  static const surfaceStrong = Color(0x1AFFFFFF);
+  static const surfaceRaised = Color(0xFF111A30);
+  static const border = Color(0x1FFFFFFF);
+  static const highlight = Color(0x2EFFFFFF);
+  static const electricBlue = Color(0xFF3B82F6);
+  static const blueBright = Color(0xFF4F9DFF);
+  static const cyan = Color(0xFF22D3EE);
+  static const green = Color(0xFF34D399);
+  static const amber = Color(0xFFFBBF24);
+  static const red = Color(0xFFF87171);
+  static const purple = Color(0xFFA78BFA);
+  static const text = Color(0xFFF4F7FF);
+  static const muted = Color(0xFF9FB0CC);
+  static const dim = Color(0xFF6B7A96);
 }
 
 abstract final class AppSpacing {
@@ -28,9 +34,18 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppRadius {
-  static const small = BorderRadius.all(Radius.circular(6));
-  static const medium = BorderRadius.all(Radius.circular(8));
-  static const pill = BorderRadius.all(Radius.circular(20));
+  static const small = BorderRadius.all(Radius.circular(12));
+  static const medium = BorderRadius.all(Radius.circular(16));
+  static const large = BorderRadius.all(Radius.circular(24));
+  static const sheet = BorderRadius.vertical(top: Radius.circular(28));
+  static const pill = BorderRadius.all(Radius.circular(999));
+}
+
+abstract final class AppShadows {
+  static const glass = [
+    BoxShadow(color: Color(0x55000000), blurRadius: 32, offset: Offset(0, 12)),
+    BoxShadow(color: Color(0x12FFFFFF), blurRadius: 0, spreadRadius: 0.5),
+  ];
 }
 
 ThemeData buildAppTheme() {
@@ -39,7 +54,7 @@ ThemeData buildAppTheme() {
         seedColor: AppColors.electricBlue,
         brightness: Brightness.dark,
       ).copyWith(
-        surface: AppColors.surface,
+        surface: AppColors.backgroundMid,
         onSurface: AppColors.text,
         primary: AppColors.electricBlue,
         secondary: AppColors.cyan,
@@ -48,11 +63,11 @@ ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: AppColors.background,
+    scaffoldBackgroundColor: Colors.transparent,
     fontFamily: AppFonts.sans,
     textTheme: const TextTheme(
       headlineLarge: TextStyle(
-        fontSize: 28,
+        fontSize: 30,
         fontWeight: FontWeight.w700,
         color: AppColors.text,
       ),
@@ -82,14 +97,14 @@ ThemeData buildAppTheme() {
       centerTitle: false,
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: AppColors.surface.withValues(alpha: 0.96),
+      backgroundColor: Colors.transparent,
       indicatorColor: AppColors.electricBlue.withValues(alpha: 0.22),
       labelTextStyle: WidgetStatePropertyAll(
         const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
       ),
     ),
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: AppColors.surface.withValues(alpha: 0.96),
+      backgroundColor: Colors.transparent,
       indicatorColor: AppColors.electricBlue.withValues(alpha: 0.22),
       selectedIconTheme: const IconThemeData(color: AppColors.electricBlue),
       unselectedIconTheme: const IconThemeData(color: AppColors.muted),
@@ -100,7 +115,7 @@ ThemeData buildAppTheme() {
       unselectedLabelTextStyle: const TextStyle(color: AppColors.muted),
     ),
     cardTheme: const CardThemeData(
-      color: AppColors.surface,
+      color: Colors.transparent,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(

@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../application/providers.dart';
@@ -35,10 +36,15 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
             padding: const EdgeInsets.fromLTRB(28, 22, 28, 28),
             children: [
               SectionTitle(
-                title: '实时监控',
+                title: 'Real-time Monitor',
                 subtitle: status.isConnected
-                    ? '750 ms 状态轮询 · 2 s 历史采样'
-                    : '连接设备后开始采集',
+                    ? 'Live telemetry · 2 s sampling'
+                    : 'Connect a device to begin sampling',
+                action: TextButton.icon(
+                  onPressed: () => context.push('/monitor/history'),
+                  icon: const Icon(Icons.history_rounded, size: 17),
+                  label: const Text('View History'),
+                ),
               ),
               const SizedBox(height: 20),
               _MetricGrid(status: status),
@@ -77,36 +83,15 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SegmentedButton<_ChartWindow>(
-                        showSelectedIcon: false,
-                        segments: const [
-                          ButtonSegment(
-                            value: _ChartWindow.live,
-                            label: Text('实时'),
-                          ),
-                          ButtonSegment(
-                            value: _ChartWindow.oneMinute,
-                            label: Text('1 分钟'),
-                          ),
-                          ButtonSegment(
-                            value: _ChartWindow.fiveMinutes,
-                            label: Text('5 分钟'),
-                          ),
-                          ButtonSegment(
-                            value: _ChartWindow.thirtyMinutes,
-                            label: Text('30 分钟'),
-                          ),
-                          ButtonSegment(
-                            value: _ChartWindow.oneHour,
-                            label: Text('1 小时'),
-                          ),
-                        ],
-                        selected: {_window},
-                        onSelectionChanged: (selection) =>
-                            setState(() => _window = selection.first),
-                      ),
+                    GlassSegmentedControl<_ChartWindow>(
+                      items: const [
+                        (_ChartWindow.live, 'Real-time'),
+                        (_ChartWindow.oneMinute, '1H'),
+                        (_ChartWindow.fiveMinutes, '6H'),
+                        (_ChartWindow.thirtyMinutes, '24H'),
+                      ],
+                      value: _window,
+                      onChanged: (next) => setState(() => _window = next),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(

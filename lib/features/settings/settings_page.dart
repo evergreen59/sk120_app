@@ -31,8 +31,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(28, 22, 28, 28),
             children: [
-              const SectionTitle(title: '设置', subtitle: '连接、设备参数与工程诊断'),
+              const SectionTitle(
+                title: 'Settings',
+                subtitle: 'Device, protection, communication and diagnostics',
+              ),
               const SizedBox(height: 18),
+              GlassCard(
+                padding: const EdgeInsets.all(12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SettingsLink(
+                      label: 'Protection',
+                      icon: Icons.shield_outlined,
+                      onTap: () => context.push('/settings/protection'),
+                    ),
+                    _SettingsLink(
+                      label: 'Advanced Power',
+                      icon: Icons.auto_graph_rounded,
+                      onTap: () => context.push('/settings/advanced'),
+                    ),
+                    _SettingsLink(
+                      label: 'Device Settings',
+                      icon: Icons.tune_rounded,
+                      onTap: () => context.push('/settings/device'),
+                    ),
+                    _SettingsLink(
+                      label: 'BLE Devices',
+                      icon: Icons.bluetooth_rounded,
+                      onTap: () => context.push('/settings/ble'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               _Section(
                 title: '运行模式',
                 icon: Icons.swap_horiz_rounded,
@@ -40,27 +73,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   children: [
                     Row(
                       children: [
-                        const Expanded(child: Text('设备通信模式')),
-                        SegmentedButton<DeviceMode>(
-                          showSelectedIcon: false,
-                          segments: const [
-                            ButtonSegment(
-                              value: DeviceMode.real,
-                              label: Text('Real BLE'),
-                            ),
-                            ButtonSegment(
-                              value: DeviceMode.mock,
-                              label: Text('Mock'),
-                            ),
-                          ],
-                          selected: {mode},
-                          onSelectionChanged: (selection) {
-                            if (selection.isNotEmpty) {
-                              ref
-                                  .read(appModeProvider.notifier)
-                                  .setMode(selection.first);
-                            }
-                          },
+                        const Expanded(child: Text('Device mode')),
+                        SizedBox(
+                          width: 220,
+                          child: GlassSegmentedControl<DeviceMode>(
+                            items: const [
+                              (DeviceMode.real, 'Real BLE'),
+                              (DeviceMode.mock, 'Mock'),
+                            ],
+                            value: mode,
+                            onChanged: (next) => ref
+                                .read(appModeProvider.notifier)
+                                .setMode(next),
+                          ),
                         ),
                       ],
                     ),
@@ -156,7 +181,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _SettingRow(
                       label: '蜂鸣器',
                       detail: 'BUZZER',
-                      trailing: Switch(
+                      trailing: ToggleSwitch(
                         value: false,
                         onChanged: status.isConnected
                             ? notifier.setBuzzer
@@ -213,7 +238,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _SettingRow(
                       label: 'MPPT',
                       detail: 'MPPT-SW',
-                      trailing: Switch(
+                      trailing: ToggleSwitch(
                         value: status.mpptEnabled ?? false,
                         onChanged: status.isConnected
                             ? (value) => notifier.setMppt(
@@ -226,7 +251,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _SettingRow(
                       label: '恒功率',
                       detail: 'CW-SW',
-                      trailing: Switch(
+                      trailing: ToggleSwitch(
                         value: status.constantPowerEnabled ?? false,
                         onChanged: status.isConnected
                             ? (value) => _setConstantPower(
@@ -304,7 +329,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _SettingRow(
                       label: '诊断面板',
                       detail: 'BLE / Modbus 原始数据',
-                      trailing: Switch(
+                      trailing: ToggleSwitch(
                         value: _engineeringMode,
                         onChanged: (value) =>
                             setState(() => _engineeringMode = value),
@@ -349,6 +374,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
   }
+}
+
+class _SettingsLink extends StatelessWidget {
+  const _SettingsLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: AppRadius.medium,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceStrong,
+        borderRadius: AppRadius.medium,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 17, color: AppColors.blueBright),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: AppColors.dim,
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Section extends StatelessWidget {

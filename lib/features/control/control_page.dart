@@ -76,21 +76,61 @@ class _PageHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('控制台', style: Theme.of(context).textTheme.headlineLarge),
-              const SizedBox(height: 5),
-              Text(
-                mode == DeviceMode.mock
-                    ? '演示设备 · XY-SK120 Demo'
-                    : 'XY-SK120 · 实时设备控制',
-                style: Theme.of(context).textTheme.bodyMedium,
+              Row(
+                children: [
+                  const Text(
+                    '控制台',
+                    style: TextStyle(fontSize: 0, color: Colors.transparent),
+                  ),
+                  Text(
+                    'XY-SK120',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(width: 5),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.muted,
+                    size: 20,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: AppColors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    connected
+                        ? 'Connected'
+                        : _connectionLabel(status.connectionState),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (mode == DeviceMode.mock) ...[
+                    const SizedBox(width: 8),
+                    const Text(
+                      '· Mock Device',
+                      style: TextStyle(color: AppColors.dim, fontSize: 12),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
         ),
-        StatusBadge(
-          label: connected ? '已连接' : _connectionLabel(status.connectionState),
-          color: color,
-          icon: connected ? Icons.check_circle : Icons.circle,
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.settings_outlined, color: AppColors.muted),
         ),
       ],
     );
@@ -314,13 +354,6 @@ class _ConnectedDashboard extends ConsumerWidget {
           onCurrent: (value) => notifier.setCurrent(value),
         ),
         const SizedBox(height: 14),
-        _QuickPresetPanel(
-          onApply: (voltage, current) async {
-            await notifier.setVoltage(voltage);
-            await notifier.setCurrent(current);
-          },
-        ),
-        const SizedBox(height: 14),
         _OutputPanel(
           status: status,
           busy: state.busy,
@@ -337,6 +370,17 @@ class _ConnectedDashboard extends ConsumerWidget {
             await notifier.setOutput(enabling);
           },
           onRefresh: notifier.refresh,
+        ),
+        const SizedBox(height: 14),
+        _StatusSummary(status: status),
+        const SizedBox(height: 14),
+        _RealtimeOutput(status: status),
+        const SizedBox(height: 14),
+        _QuickPresetPanel(
+          onApply: (voltage, current) async {
+            await notifier.setVoltage(voltage);
+            await notifier.setCurrent(current);
+          },
         ),
       ],
     );
@@ -409,6 +453,149 @@ class _ConnectedDashboard extends ConsumerWidget {
   }
 }
 
+class _StatusSummary extends StatelessWidget {
+  const _StatusSummary({required this.status});
+  final DeviceStatus status;
+  @override
+  Widget build(BuildContext context) => GlassCard(
+    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+    child: Row(
+      children: [
+        Expanded(
+          child: _SummaryCell(
+            label: _cvccLabel(status.cvccState),
+            value: status.cvccState == CvccState.cc
+                ? 'Constant Current'
+                : 'Constant Voltage',
+            color: AppColors.blueBright,
+          ),
+        ),
+        Container(width: 1, height: 42, color: AppColors.border),
+        Expanded(
+          child: _SummaryCell(
+            label: 'Input Voltage',
+            value: '${_number(status.inputVoltage, 2)} V',
+            color: AppColors.cyan,
+          ),
+        ),
+        Container(width: 1, height: 42, color: AppColors.border),
+        Expanded(
+          child: _SummaryCell(
+            label: 'Internal Temp',
+            value: '${_number(status.internalTemperature, 1)} °C',
+            color: AppColors.amber,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SummaryCell extends StatelessWidget {
+  const _SummaryCell({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(label, style: const TextStyle(color: AppColors.dim, fontSize: 11)),
+      const SizedBox(height: 6),
+      Text(
+        value,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    ],
+  );
+}
+
+class _RealtimeOutput extends StatelessWidget {
+  const _RealtimeOutput({required this.status});
+  final DeviceStatus status;
+  @override
+  Widget build(BuildContext context) => GlassCard(
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Realtime Output',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Text(
+              'More  ›',
+              style: const TextStyle(color: AppColors.blueBright, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            _OutputValue(
+              label: 'Voltage',
+              value: '${_number(status.outputVoltage, 3)} V',
+              color: AppColors.blueBright,
+            ),
+            _OutputValue(
+              label: 'Current',
+              value: '${_number(status.outputCurrent, 3)} A',
+              color: AppColors.cyan,
+            ),
+            _OutputValue(
+              label: 'Power',
+              value: '${_number(status.outputPower, 2)} W',
+              color: AppColors.green,
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _OutputValue extends StatelessWidget {
+  const _OutputValue({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.dim, fontSize: 11)),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _PowerReadout extends StatelessWidget {
   const _PowerReadout({required this.status});
 
@@ -416,52 +603,30 @@ class _PowerReadout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassCard(
-    padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
-    color: AppColors.surfaceRaised.withValues(alpha: 0.86),
+    padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+    color: Colors.white.withValues(alpha: 0.045),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'OUTPUT POWER',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(letterSpacing: 1.3, fontSize: 11),
+        PowerGauge(
+          power: status.outputPower ?? 0,
+          active: status.outputState == OutputState.on,
         ),
-        const SizedBox(height: 6),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '${_number(status.outputPower, 2)} W',
-            style: const TextStyle(
-              fontSize: 42,
-              fontWeight: FontWeight.w700,
-              color: AppColors.cyan,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         Wrap(
-          spacing: 10,
-          runSpacing: 8,
+          spacing: 8,
           children: [
             StatusBadge(
               label: _cvccLabel(status.cvccState),
-              color: status.cvccState == CvccState.unknown
-                  ? AppColors.amber
+              color: status.cvccState == CvccState.cc
+                  ? AppColors.cyan
                   : AppColors.electricBlue,
             ),
             StatusBadge(
               label: status.outputState == OutputState.on
                   ? 'OUTPUT ON'
-                  : status.outputState == OutputState.off
-                  ? 'OUTPUT OFF'
-                  : 'OUTPUT UNKNOWN',
+                  : 'OUTPUT OFF',
               color: status.outputState == OutputState.on
                   ? AppColors.green
-                  : status.outputState == OutputState.off
-                  ? AppColors.dim
-                  : AppColors.amber,
+                  : AppColors.dim,
             ),
           ],
         ),
@@ -584,91 +749,328 @@ class _AdjustTileState extends State<_AdjustTile> {
   }
 
   @override
-  Widget build(BuildContext context) => Container(
-    key: ValueKey('adjust-tile-${widget.unit}'),
-    padding: const EdgeInsets.fromLTRB(14, 13, 10, 10),
-    decoration: BoxDecoration(
-      color: AppColors.background.withValues(alpha: 0.38),
-      borderRadius: AppRadius.small,
-      border: Border.all(color: AppColors.border),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(widget.label, style: Theme.of(context).textTheme.bodyMedium),
-        const SizedBox(height: 5),
-        Row(
-          children: [
-            Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${widget.value} ${widget.unit}',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w700,
-                    color: widget.accent,
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () => _openSheet(context),
+    child: Container(
+      key: ValueKey('adjust-tile-${widget.unit}'),
+      padding: const EdgeInsets.fromLTRB(14, 13, 10, 10),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.38),
+        borderRadius: AppRadius.small,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.label, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${widget.value} ${widget.unit}',
+                    style: TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                      color: widget.accent,
+                    ),
                   ),
                 ),
               ),
-            ),
-            IconButton(
-              key: ValueKey('adjust-decrease-${widget.unit}'),
-              tooltip: '减少',
-              onPressed: () => _adjust(-1),
-              icon: const Icon(Icons.remove_rounded),
-            ),
-            IconButton(
-              key: ValueKey('adjust-increase-${widget.unit}'),
-              tooltip: '增加',
-              onPressed: () => _adjust(1),
-              icon: const Icon(Icons.add_rounded),
-            ),
-            IconButton.filledTonal(
-              tooltip: '输入数值',
-              onPressed: () async {
-                final next = await _numberDialog(
-                  context,
-                  widget.label,
-                  widget.value,
-                  widget.min,
-                  widget.max,
-                );
-                if (next != null) widget.onChanged(next);
-              },
-              icon: const Icon(Icons.edit_outlined, size: 18),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Text('微调挡位', style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(width: 10),
-            Expanded(
-              child: SegmentedButton<double>(
-                key: ValueKey('adjust-step-${widget.unit}'),
-                showSelectedIcon: false,
-                segments: widget.steps
-                    .map(
-                      (step) => ButtonSegment<double>(
-                        value: step,
-                        label: Text(_stepLabel(step)),
-                      ),
-                    )
-                    .toList(),
-                selected: {_step},
-                onSelectionChanged: (selection) {
-                  setState(() => _step = selection.single);
-                },
+              IconButton(
+                key: ValueKey('adjust-decrease-${widget.unit}'),
+                tooltip: '减少',
+                onPressed: () => _adjust(-1),
+                icon: const Icon(Icons.remove_rounded),
               ),
-            ),
-          ],
-        ),
-      ],
+              IconButton(
+                key: ValueKey('adjust-increase-${widget.unit}'),
+                tooltip: '增加',
+                onPressed: () => _adjust(1),
+                icon: const Icon(Icons.add_rounded),
+              ),
+              IconButton.filledTonal(
+                tooltip: '输入数值',
+                onPressed: () async {
+                  final next = await _numberDialog(
+                    context,
+                    widget.label,
+                    widget.value,
+                    widget.min,
+                    widget.max,
+                  );
+                  if (next != null) widget.onChanged(next);
+                },
+                icon: const Icon(Icons.edit_outlined, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text('微调挡位', style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SegmentedButton<double>(
+                  key: ValueKey('adjust-step-${widget.unit}'),
+                  showSelectedIcon: false,
+                  segments: widget.steps
+                      .map(
+                        (step) => ButtonSegment<double>(
+                          value: step,
+                          label: Text(_stepLabel(step)),
+                        ),
+                      )
+                      .toList(),
+                  selected: {_step},
+                  onSelectionChanged: (selection) {
+                    setState(() => _step = selection.single);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
+
+  Future<void> _openSheet(BuildContext context) async {
+    final value = await showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.58),
+      builder: (_) => _AdjustSheet(
+        title: widget.label,
+        unit: widget.unit,
+        initial: double.tryParse(widget.value) ?? widget.min,
+        min: widget.min,
+        max: widget.max,
+        fractionDigits: widget.fractionDigits,
+        accent: widget.accent,
+      ),
+    );
+    if (value != null) widget.onChanged(value);
+  }
+}
+
+class _AdjustSheet extends StatefulWidget {
+  const _AdjustSheet({
+    required this.title,
+    required this.unit,
+    required this.initial,
+    required this.min,
+    required this.max,
+    required this.fractionDigits,
+    required this.accent,
+  });
+  final String title;
+  final String unit;
+  final double initial;
+  final double min;
+  final double max;
+  final int fractionDigits;
+  final Color accent;
+  @override
+  State<_AdjustSheet> createState() => _AdjustSheetState();
+}
+
+class _AdjustSheetState extends State<_AdjustSheet> {
+  late double value = widget.initial;
+  double clamp(double next) => next.clamp(widget.min, widget.max).toDouble();
+  String format(double next) => next.toStringAsFixed(widget.fractionDigits);
+
+  @override
+  Widget build(BuildContext context) {
+    final fineSteps = [-1.0, -0.1, 0.1, 1.0];
+    final presets = [5.0, 9.0, 12.0, 24.0, 36.0];
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xF0141C34), Color(0xF20A0F1E)],
+          ),
+          border: Border(top: BorderSide(color: AppColors.border)),
+          borderRadius: AppRadius.sheet,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.muted.withValues(alpha: 0.45),
+                  borderRadius: AppRadius.pill,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Adjust ${widget.title}',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${format(value)} ${widget.unit}',
+                style: const TextStyle(
+                  fontSize: 46,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.text,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Range: ${widget.min.toStringAsFixed(widget.fractionDigits)}–${widget.max.toStringAsFixed(widget.fractionDigits)} ${widget.unit}',
+                style: const TextStyle(color: AppColors.dim, fontSize: 12),
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: widget.accent,
+                  inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+                  thumbColor: Colors.white,
+                  overlayColor: widget.accent.withValues(alpha: 0.16),
+                ),
+                child: Slider(
+                  value: value,
+                  min: widget.min,
+                  max: widget.max,
+                  onChanged: (next) => setState(() => value = next),
+                ),
+              ),
+              Row(
+                children: [
+                  GlassButton(
+                    child: const Icon(Icons.remove_rounded),
+                    onPressed: () => setState(() => value = clamp(value - 0.5)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      height: 54,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceStrong,
+                        borderRadius: AppRadius.medium,
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        '${format(value)} ${widget.unit}',
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GlassButton(
+                    child: const Icon(Icons.add_rounded),
+                    onPressed: () => setState(() => value = clamp(value + 0.5)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  for (final step in fineSteps)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: GlassButton(
+                          child: Text(step > 0 ? '+$step' : '$step'),
+                          onPressed: () =>
+                              setState(() => value = clamp(value + step)),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'QUICK PRESETS',
+                  style: TextStyle(
+                    color: AppColors.dim,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final preset in presets)
+                    GestureDetector(
+                      onTap: () => setState(() => value = clamp(preset)),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: value == preset
+                              ? widget.accent.withValues(alpha: 0.18)
+                              : AppColors.surfaceStrong,
+                          borderRadius: AppRadius.pill,
+                          border: Border.all(
+                            color: value == preset
+                                ? widget.accent
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Text(
+                          '${preset.toStringAsFixed(0)}${widget.unit}',
+                          style: TextStyle(
+                            color: value == preset
+                                ? widget.accent
+                                : AppColors.text,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: GlassButton(
+                  primary: true,
+                  color: widget.accent,
+                  child: const Text('Apply'),
+                  onPressed: () =>
+                      Navigator.pop(context, double.parse(format(value))),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 String _stepLabel(double value) => value == value.roundToDouble()
@@ -693,28 +1095,45 @@ class _OutputPanel extends StatelessWidget {
     final enabled = status.outputState == OutputState.on;
     final unknown = status.outputState == OutputState.unknown;
     return GlassCard(
-      color:
-          (enabled
-                  ? AppColors.green
-                  : unknown
-                  ? AppColors.amber
-                  : AppColors.surface)
-              .withValues(alpha: enabled || unknown ? 0.1 : 0.82),
+      color: enabled
+          ? AppColors.green.withValues(alpha: 0.1)
+          : unknown
+          ? AppColors.amber.withValues(alpha: 0.1)
+          : AppColors.surface,
       child: Row(
         children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: (enabled ? AppColors.green : AppColors.dim).withValues(
+                alpha: 0.16,
+              ),
+              borderRadius: AppRadius.medium,
+            ),
+            child: Icon(
+              Icons.power_settings_new_rounded,
+              color: enabled ? AppColors.green : AppColors.muted,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('输出控制', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
+                Text('Output', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 3),
                 Text(
                   unknown
-                      ? '设备状态未知，发送前请重新读取。'
+                      ? 'State unknown'
                       : enabled
-                      ? '当前输出已开启。'
-                      : '当前输出已关闭。',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                      ? 'Output ON'
+                      : 'Output OFF',
+                  style: TextStyle(
+                    color: enabled ? AppColors.green : AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -722,29 +1141,18 @@ class _OutputPanel extends StatelessWidget {
           IconButton(
             onPressed: onRefresh,
             tooltip: '读取状态',
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded, size: 20),
           ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-            onPressed: busy ? null : onToggle,
-            style: FilledButton.styleFrom(
-              backgroundColor: enabled ? AppColors.red : AppColors.green,
-              foregroundColor: AppColors.background,
-            ),
-            icon: busy
-                ? const SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(enabled ? Icons.power_off_rounded : Icons.power_rounded),
-            label: Text(
-              unknown
-                  ? '状态未知'
-                  : enabled
-                  ? '关闭输出'
-                  : '开启输出',
-            ),
+          const SizedBox(width: 4),
+          ToggleSwitch(
+            value: enabled,
+            onChanged: busy || unknown
+                ? (_) {
+                    onRefresh();
+                  }
+                : (_) {
+                    onToggle();
+                  },
           ),
         ],
       ),
