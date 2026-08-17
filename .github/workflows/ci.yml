@@ -53,7 +53,7 @@ jobs:
         run: flutter analyze
 
       - name: Run tests with coverage
-        run: flutter test --coverage --branch-coverage
+        run: flutter test --coverage --branch-coverage --exclude-tags golden
 
       - name: Enforce coverage threshold
         run: |
@@ -141,7 +141,11 @@ jobs:
         run: flutter pub get
 
       - name: Run tests on ${{ matrix.name }} host
-        run: flutter test
+        run: flutter test --exclude-tags golden
+
+      - name: Run macOS golden tests
+        if: matrix.platform == 'macos'
+        run: flutter test test/golden
 
       - name: Build ${{ matrix.name }}
         run: ${{ matrix.build-command }}

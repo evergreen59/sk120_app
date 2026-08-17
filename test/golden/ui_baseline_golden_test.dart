@@ -46,7 +46,7 @@ void main() {
           '../../test_goldens/macos/iphone_393x852/${page.name}.png',
         ),
       );
-    });
+    }, tags: 'golden');
   }
 }
 
