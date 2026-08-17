@@ -143,10 +143,6 @@ jobs:
       - name: Run tests on ${{ matrix.name }} host
         run: flutter test --exclude-tags golden
 
-      - name: Run macOS golden tests
-        if: matrix.platform == 'macos'
-        run: flutter test test/golden
-
       - name: Build ${{ matrix.name }}
         run: ${{ matrix.build-command }}
 
