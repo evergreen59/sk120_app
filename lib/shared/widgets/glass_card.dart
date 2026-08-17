@@ -300,55 +300,66 @@ class PowerGauge extends StatelessWidget {
   final double max;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 246,
-    child: TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: active ? (power / max).clamp(0, 1) : 0),
-      duration: const Duration(milliseconds: 360),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, _) => CustomPaint(
-        painter: _GaugePainter(progress: value, active: active),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 30),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'OUTPUT POWER',
-                  style: TextStyle(
-                    color: AppColors.dim,
-                    fontSize: 11,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    // The gauge overlays its readout on the dial at the default text size.
+    // At accessibility sizes that readout can be several lines tall, so give
+    // it additional vertical room instead of allowing the fixed 246 px box
+    // to clip/overflow the text.
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final height = 246.0 + ((textScale - 1).clamp(0, 1) * 220.0);
+    return SizedBox(
+      height: height,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: active ? (power / max).clamp(0, 1) : 0),
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) => CustomPaint(
+          painter: _GaugePainter(progress: value, active: active),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 30),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'OUTPUT POWER',
+                    style: TextStyle(
+                      color: AppColors.dim,
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${(active ? power : 0).toStringAsFixed(2)} W',
-                  style: const TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.text,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${(active ? power : 0).toStringAsFixed(2)} W',
+                      style: const TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.text,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  active ? 'Output active' : 'Output off',
-                  style: TextStyle(
-                    color: active ? AppColors.green : AppColors.dim,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 5),
+                  Text(
+                    active ? 'Output active' : 'Output off',
+                    style: TextStyle(
+                      color: active ? AppColors.green : AppColors.dim,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _GaugePainter extends CustomPainter {
@@ -408,22 +419,43 @@ class SectionTitle extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: Column(
+  Widget build(BuildContext context) {
+    final titleContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ],
+    );
+    if (action == null) return titleContent;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        // Keep section actions reachable at accessibility sizes by placing
+        // them below the heading rather than forcing two large flex children
+        // into one narrow row.
+        if (textScale >= 1.5 && constraints.maxWidth < 600) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleContent,
+              const SizedBox(height: 6),
+              Align(alignment: Alignment.centerRight, child: action),
+            ],
+          );
+        }
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium),
-            ],
+            Expanded(child: titleContent),
+            action!,
           ],
-        ),
-      ),
-      ?action,
-    ],
-  );
+        );
+      },
+    );
+  }
 }

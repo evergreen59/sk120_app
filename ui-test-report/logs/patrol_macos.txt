@@ -1,0 +1,9 @@
+PATROL_RESULT=PASS
+App build completed successfully.
+RunnerUITests compiled and linked successfully through Swift Package Manager.
+RunnerUITests is present in the Runner scheme and entered XCTest execution.
+Developer mode is enabled.
+The app has macOS sandbox client/server network entitlements for Patrol's local services.
+Test: app_flow_test mock-device critical navigation and output flow
+Result: 1 passed, 0 failed, 0 skipped
+xcresult: build/macos_results_1786888820538.xcresult

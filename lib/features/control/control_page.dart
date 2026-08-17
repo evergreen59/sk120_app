@@ -82,9 +82,13 @@ class _PageHeader extends StatelessWidget {
                     '控制台',
                     style: TextStyle(fontSize: 0, color: Colors.transparent),
                   ),
-                  Text(
-                    'XY-SK120',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  Flexible(
+                    child: Text(
+                      'XY-SK120',
+                      maxLines: 2,
+                      softWrap: true,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
                   ),
                   const SizedBox(width: 5),
                   const Icon(

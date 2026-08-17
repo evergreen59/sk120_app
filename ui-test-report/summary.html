@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SK120 UI Regression Report</title>
+<style>
+body{font:15px system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#172033}
+header{border-bottom:1px solid #ccd3df;margin-bottom:1rem} h1{margin-bottom:.25rem}
+.fail{color:#b42318}.pass{color:#067647}.warn{color:#9a6700}
+table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{padding:.55rem;border:1px solid #d8dee8;text-align:left;vertical-align:top}
+img{max-width:280px;border:1px solid #ccd3df;margin:.4rem}
+</style>
+<header><h1>SK120 UI Regression Report</h1><p class="pass"><strong>UI REGRESSION PASSED</strong> · branch <code>codex/ui-regression-20260816</code></p></header>
+<p>All 136 deterministic layout profiles passed after the accessibility layout fixes. Eight 393x852 golden captures matched their baselines. The macOS Patrol critical mock-device flow also passed.</p>
+<table><tr><th>Layer</th><th>Status</th><th>Result</th></tr>
+<tr><td>Static analysis</td><td class="pass">PASS</td><td>flutter analyze</td></tr>
+<tr><td>Flutter unit/widget suite</td><td class="pass">PASS</td><td>216 passed, 0 failed</td></tr>
+<tr><td>Layout matrix</td><td class="pass">PASS</td><td>136 passed, 0 overflow</td></tr>
+<tr><td>Golden baseline</td><td class="pass">PASS</td><td>8 captures at 393x852 / scale 1.0</td></tr>
+<tr><td>Patrol macOS</td><td class="pass">PASS</td><td>1 critical mock-device flow passed</td></tr>
+<tr><td>Patrol web</td><td class="warn">UNSUPPORTED</td><td>Web cannot compile sqlite3/dart:ffi.</td></tr></table>
+<h2>Reference Captures</h2>
+<div><img src="screenshots/control_default.png" alt="Control"><img src="screenshots/monitor_default.png" alt="Monitor"><img src="screenshots/settings_default.png" alt="Settings"></div>
+<p>Machine-readable details: <a href="summary.json">summary.json</a> · <a href="overflow/issues.json">overflow/issues.json</a> · <a href="metadata.json">metadata.json</a>.</p>
+</html>

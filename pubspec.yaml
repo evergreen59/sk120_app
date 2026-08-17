@@ -55,6 +55,17 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.7.1
   drift_dev: 2.34.0
+  patrol: ^4.9.0
+
+patrol:
+  app_name: XY-SK120 Control
+  test_directory: patrol_test
+  android:
+    package_name: com.example.xy_sk120_control
+  ios:
+    bundle_id: com.example.xySk120Control
+  macos:
+    bundle_id: com.example.xySk120Control
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

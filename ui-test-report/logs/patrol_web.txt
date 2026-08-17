@@ -1,0 +1,4 @@
+PATROL_RESULT=TEST_INFRA_FAILURE
+The project is not configured to build on the web.
+The transitive sqlite3/ffi dependency imports dart:ffi, which is unavailable
+on the web target.

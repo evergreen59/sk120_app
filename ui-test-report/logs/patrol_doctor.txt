@@ -1,0 +1,6 @@
+Patrol CLI version: 4.7.0
+Flutter: 3.44.8
+Android adb: available
+Xcodebuild: available
+ideviceinstaller: unavailable (optional physical iOS installer)
+Node/npm: available

@@ -1,0 +1,19 @@
+{
+  "runDate": "2026-08-16",
+  "branch": "codex/ui-regression-20260816",
+  "flutter": "3.44.8",
+  "dart": "3.12.2",
+  "patrolCli": "4.7.0",
+  "patrolPackage": "4.9.0",
+  "os": "macOS 14.8.7 23J520 x86_64",
+  "xcode": "16.2",
+  "androidSdk": "36.0.0",
+  "fixture": "seeded production MockPowerDevice behind a timer-free UI test service boundary",
+  "prototype": "design/High-fidelity IoT app prototype/src/imports/pasted_text/design-direction.md",
+  "protocol": "XY-SK120-Modbus_Address.md",
+  "goldenReference": "393x852 portrait, textScale 1.0, dark theme",
+  "patrolDoctor": "PASS with ideviceinstaller unavailable",
+  "patrolNativeResult": "PASS: RunnerUITests executed the mock-device critical navigation and output flow on macOS",
+  "patrolXcresult": "build/macos_results_1786888820538.xcresult",
+  "patrolWebFailure": "web build is unsupported and sqlite3/dart:ffi is unavailable on web"
+}

@@ -386,35 +386,47 @@ class _SettingsLink extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: AppRadius.medium,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceStrong,
-        borderRadius: AppRadius.medium,
-        border: Border.all(color: AppColors.border),
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final children = [
+      Icon(icon, size: 17, color: AppColors.blueBright),
+      Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 17, color: AppColors.blueBright),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(width: 4),
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 16,
-            color: AppColors.dim,
-          ),
-        ],
+      const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.dim),
+    ];
+    final content = textScale >= 1.3
+        ? Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 7,
+            runSpacing: 2,
+            children: children,
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              children[0],
+              const SizedBox(width: 7),
+              children[1],
+              const SizedBox(width: 4),
+              children[2],
+            ],
+          );
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.medium,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceStrong,
+          borderRadius: AppRadius.medium,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: content,
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _Section extends StatelessWidget {
@@ -492,12 +504,17 @@ class _SettingValue extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Text('$label  ', style: Theme.of(context).textTheme.bodyMedium),
-      Text(value, style: Theme.of(context).textTheme.bodyLarge),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final labelText = Text(
+      MediaQuery.textScalerOf(context).scale(1) >= 1.3 ? label : '$label  ',
+      style: Theme.of(context).textTheme.bodyMedium,
+    );
+    final valueText = Text(value, style: Theme.of(context).textTheme.bodyLarge);
+    if (MediaQuery.textScalerOf(context).scale(1) < 1.3) {
+      return Row(children: [labelText, valueText]);
+    }
+    return Wrap(spacing: 6, runSpacing: 2, children: [labelText, valueText]);
+  }
 }
 
 class _EngineeringInfo extends StatelessWidget {

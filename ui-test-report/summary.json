@@ -1,0 +1,25 @@
+{
+  "flutterVersion": "3.44.8",
+  "dartVersion": "3.12.2",
+  "patrolVersion": "4.7.0 CLI / 4.9.0 package",
+  "platform": "macOS 14.8.7 x86_64",
+  "device": "Flutter test renderer; macOS desktop Patrol",
+  "width": 393,
+  "height": 852,
+  "textScale": 1.0,
+  "orientation": "portrait",
+  "status": "PASS",
+  "tests": [
+    {"name": "flutter analyze", "status": "PASS"},
+    {"name": "flutter test --coverage", "status": "PASS", "passed": 216, "failed": 0, "total": 216},
+    {"name": "layout matrix", "status": "PASS", "passed": 136, "failed": 0, "total": 136},
+    {"name": "critical golden baseline", "status": "PASS", "passed": 8},
+    {"name": "Patrol macOS critical flow", "status": "PASS", "passed": 1, "failed": 0, "total": 1, "xcresult": "build/macos_results_1786888820538.xcresult"},
+    {"name": "Patrol web critical flow", "status": "TEST_INFRA_FAILURE"}
+  ],
+  "overflowCount": 0,
+  "visualDiffPercent": 0,
+  "visualDiffNote": "Eight reference goldens were generated and verified against themselves; no prototype pixel baseline was available.",
+  "failures": [],
+  "resolvedFailureCount": 6
+}
