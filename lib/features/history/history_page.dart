@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -119,6 +122,25 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final content = csv
         ? await repository.exportSessionsCsv(service.id)
         : await repository.exportSessionsJson(service.id);
+    try {
+      await FileSaver.instance.saveFile(
+        name: '${service.id}_history_${DateTime.now().millisecondsSinceEpoch}',
+        bytes: Uint8List.fromList(utf8.encode(content)),
+        fileExtension: csv ? 'csv' : 'json',
+        mimeType: csv ? MimeType.csv : MimeType.json,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('文件已保存')));
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      }
+    }
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,

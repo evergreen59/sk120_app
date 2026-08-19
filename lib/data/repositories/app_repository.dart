@@ -238,6 +238,34 @@ class AppRepository implements LocalRepository {
   }
 
   @override
+  Stream<List<CommunicationLogEntry>> watchCommunicationLogs(String deviceId) {
+    final query = database.select(database.communicationLogs)
+      ..where((table) => table.deviceId.equals(deviceId))
+      ..orderBy([
+        (table) =>
+            OrderingTerm(expression: table.timestamp, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => CommunicationLogEntry(
+              id: row.id,
+              deviceId: row.deviceId,
+              timestamp: row.timestamp,
+              direction: row.direction == CommunicationDirection.tx.name
+                  ? CommunicationDirection.tx
+                  : CommunicationDirection.rx,
+              rawBytes: _parseHex(row.rawHex),
+              parsedMessage: row.parsedMessage,
+              success: row.success,
+              error: row.error,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  @override
   Future<void> setSetting(String key, String value) {
     return database
         .into(database.appSettings)

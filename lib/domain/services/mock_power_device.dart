@@ -39,6 +39,7 @@ class MockPowerDevice extends PowerDeviceBase {
           protectionStatus: ProtectionStatus.normal,
           protectionRaw: 0,
           keyLocked: false,
+          buzzerEnabled: false,
           backlightLevel: 3,
           voltageSet: 12,
           currentSet: 1.25,
@@ -242,6 +243,7 @@ class MockPowerDevice extends PowerDeviceBase {
   @override
   Future<Result<void>> setBuzzer(bool enabled) async {
     if (!status.isConnected) return failure(ErrorCode.deviceNotReady, '设备未连接');
+    emitStatus(status.copyWith(buzzerEnabled: enabled));
     return const Success(null);
   }
 

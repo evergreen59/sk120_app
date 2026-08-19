@@ -10,6 +10,7 @@ abstract interface class LocalRepository {
   Future<List<DataGroup>> loadGroups(String deviceId);
   Future<void> saveCommunicationLog(CommunicationLogEntry entry);
   Future<List<CommunicationLogEntry>> loadCommunicationLogs(String deviceId);
+  Stream<List<CommunicationLogEntry>> watchCommunicationLogs(String deviceId);
   Future<void> setSetting(String key, String value);
   Future<String?> getSetting(String key);
   Future<String> exportSessionsCsv(String deviceId);

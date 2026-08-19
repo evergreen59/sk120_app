@@ -110,6 +110,7 @@ class RealPowerDevice extends PowerDeviceBase {
       protectionStatus: ProtectionStatus.fromCode(protectionRaw),
       protectionRaw: protectionRaw,
       keyLocked: _binary(values[PowerRegister.lock.address]),
+      buzzerEnabled: _binary(values[PowerRegister.buzzer.address]),
       backlightLevel: values[PowerRegister.backlight.address],
       voltageSet: RegisterCatalog.decodeVoltage(
         values[PowerRegister.voltageSet.address],
@@ -264,8 +265,14 @@ class RealPowerDevice extends PowerDeviceBase {
   }
 
   @override
-  Future<Result<void>> setBuzzer(bool enabled) =>
-      _client.writeRegister(PowerRegister.buzzer.address, enabled ? 1 : 0);
+  Future<Result<void>> setBuzzer(bool enabled) async {
+    final result = await _client.writeRegister(
+      PowerRegister.buzzer.address,
+      enabled ? 1 : 0,
+    );
+    if (result.isSuccess) emitStatus(status.copyWith(buzzerEnabled: enabled));
+    return result;
+  }
 
   @override
   Future<Result<void>> setKeyLock(bool locked) async {
@@ -417,21 +424,35 @@ class RealPowerDevice extends PowerDeviceBase {
   );
 
   static List<int> _groupToWritableValues(DataGroup group) {
+    if (group.voltageSet == null ||
+        group.currentSet == null ||
+        group.lowVoltageProtection == null ||
+        group.overVoltageProtection == null ||
+        group.overCurrentProtection == null ||
+        group.overPowerProtection == null ||
+        group.maxOutputHours == null ||
+        group.maxOutputMinutes == null ||
+        group.maxOutputAh == null ||
+        group.maxOutputWh == null ||
+        group.overTemperatureProtection == null ||
+        group.powerOnOutput == null) {
+      throw ArgumentError('数据组尚未完整读取，禁止写入未知保护参数');
+    }
     final values = <int>[
-      RegisterCatalog.encodeVoltage(group.voltageSet ?? 0),
-      RegisterCatalog.encodeCurrent(group.currentSet ?? 0),
-      RegisterCatalog.encodeVoltage(group.lowVoltageProtection ?? 0),
-      RegisterCatalog.encodeVoltage(group.overVoltageProtection ?? 0),
-      RegisterCatalog.encodeCurrent(group.overCurrentProtection ?? 0),
-      ((group.overPowerProtection ?? 0) * 10).round(),
-      group.maxOutputHours ?? 0,
-      group.maxOutputMinutes ?? 0,
-      (group.maxOutputAh ?? 0) & 0xFFFF,
-      ((group.maxOutputAh ?? 0) >> 16) & 0xFFFF,
-      (group.maxOutputWh ?? 0) & 0xFFFF,
-      ((group.maxOutputWh ?? 0) >> 16) & 0xFFFF,
-      group.overTemperatureProtection ?? 0,
-      group.powerOnOutput ?? 0,
+      RegisterCatalog.encodeVoltage(group.voltageSet!),
+      RegisterCatalog.encodeCurrent(group.currentSet!),
+      RegisterCatalog.encodeVoltage(group.lowVoltageProtection!),
+      RegisterCatalog.encodeVoltage(group.overVoltageProtection!),
+      RegisterCatalog.encodeCurrent(group.overCurrentProtection!),
+      (group.overPowerProtection! * 10).round(),
+      group.maxOutputHours!,
+      group.maxOutputMinutes!,
+      group.maxOutputAh! & 0xFFFF,
+      (group.maxOutputAh! >> 16) & 0xFFFF,
+      group.maxOutputWh! & 0xFFFF,
+      (group.maxOutputWh! >> 16) & 0xFFFF,
+      group.overTemperatureProtection!,
+      group.powerOnOutput!,
     ];
     for (final value in values) {
       if (value < 0 || value > 0xFFFF) {

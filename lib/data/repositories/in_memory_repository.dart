@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import '../../domain/models/device_models.dart';
 import '../../domain/repositories/local_repository.dart';
@@ -9,6 +10,8 @@ class InMemoryRepository implements LocalRepository {
   final List<OutputSession> _sessions = [];
   final List<DataGroup> _groups = [];
   final List<CommunicationLogEntry> _logs = [];
+  final StreamController<List<CommunicationLogEntry>> _logController =
+      StreamController.broadcast();
   final Map<String, String> _settings = {};
   int _nextPresetId = 1;
 
@@ -64,8 +67,21 @@ class InMemoryRepository implements LocalRepository {
       .toList();
 
   @override
-  Future<void> saveCommunicationLog(CommunicationLogEntry entry) async =>
-      _logs.add(entry);
+  Future<void> saveCommunicationLog(CommunicationLogEntry entry) async {
+    _logs.add(entry);
+    _logController.add(List.unmodifiable(_logs.reversed));
+  }
+
+  @override
+  Stream<List<CommunicationLogEntry>> watchCommunicationLogs(
+    String deviceId,
+  ) async* {
+    yield await loadCommunicationLogs(deviceId);
+    yield* _logController.stream.map(
+      (_) =>
+          _logs.where((e) => e.deviceId == deviceId).toList().reversed.toList(),
+    );
+  }
 
   @override
   Future<List<CommunicationLogEntry>> loadCommunicationLogs(

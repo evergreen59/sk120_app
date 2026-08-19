@@ -7,8 +7,6 @@ import '../../domain/models/device_models.dart';
 import '../../shared/responsive/responsive.dart';
 import '../../shared/widgets/glass_card.dart';
 
-void _noopGroupMode(bool _) {}
-
 class DataGroupsPage extends ConsumerWidget {
   const DataGroupsPage({super.key});
 
@@ -25,18 +23,16 @@ class DataGroupsPage extends ConsumerWidget {
               SectionTitle(
                 title: 'Data Groups',
                 subtitle: 'Device Groups · M0–M9 stored on XY-SK120',
-                action: const Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: AppColors.blueBright,
-                ),
               ),
               const SizedBox(height: 18),
-              const GlassSegmentedControl<bool>(
-                items: [(true, 'Device Groups'), (false, 'Local Groups')],
-                value: true,
-                onChanged: _noopGroupMode,
-              ),
-              const SizedBox(height: 16),
+              if (state.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    state.errorMessage!,
+                    style: const TextStyle(color: AppColors.red),
+                  ),
+                ),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final columns = constraints.maxWidth > 1000
@@ -59,6 +55,11 @@ class DataGroupsPage extends ConsumerWidget {
                             onRead: () => notifier.readGroup(group.index),
                             onLoad: () => _loadGroup(context, ref, group),
                             onEdit: () => _editGroup(context, ref, group),
+                            editable:
+                                group.voltageSet != null &&
+                                group.currentSet != null,
+                            outputOn:
+                                state.status.outputState == OutputState.on,
                           ),
                         ),
                     ],
@@ -84,6 +85,8 @@ class _GroupCard extends StatelessWidget {
     required this.onRead,
     required this.onLoad,
     required this.onEdit,
+    required this.editable,
+    required this.outputOn,
   });
 
   final DataGroup group;
@@ -91,6 +94,8 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onRead;
   final VoidCallback onLoad;
   final VoidCallback onEdit;
+  final bool editable;
+  final bool outputOn;
 
   @override
   Widget build(BuildContext context) => GlassCard(
@@ -125,7 +130,7 @@ class _GroupCard extends StatelessWidget {
             ),
             IconButton(
               tooltip: '编辑数据组',
-              onPressed: busy ? null : onEdit,
+              onPressed: busy || !editable || outputOn ? null : onEdit,
               icon: const Icon(Icons.edit_outlined, size: 18),
             ),
             IconButton(
@@ -164,7 +169,7 @@ class _GroupCard extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: FilledButton.tonalIcon(
-            onPressed: busy ? null : onLoad,
+            onPressed: busy || !editable || outputOn ? null : onLoad,
             icon: const Icon(Icons.input_rounded, size: 18),
             label: const Text('预览并加载'),
           ),
@@ -311,6 +316,7 @@ class _GroupEditor extends StatefulWidget {
 }
 
 class _GroupEditorState extends State<_GroupEditor> {
+  String? _error;
   late final TextEditingController _name;
   late final TextEditingController _voltage;
   late final TextEditingController _current;
@@ -372,6 +378,11 @@ class _GroupEditorState extends State<_GroupEditor> {
       ),
     ),
     actions: [
+      if (_error != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(_error!, style: const TextStyle(color: Colors.red)),
+        ),
       TextButton(
         onPressed: () => Navigator.pop(context),
         child: const Text('取消'),
@@ -390,6 +401,7 @@ class _GroupEditorState extends State<_GroupEditor> {
               current > 5 ||
               opp < 0 ||
               opp > 120) {
+            setState(() => _error = '请输入有效范围：电压 0-36V，电流 0-5A，过功率 0-120W');
             return;
           }
           Navigator.pop(

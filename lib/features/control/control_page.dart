@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../application/providers.dart';
@@ -83,18 +84,23 @@ class _PageHeader extends StatelessWidget {
                     style: TextStyle(fontSize: 0, color: Colors.transparent),
                   ),
                   Flexible(
-                    child: Text(
-                      'XY-SK120',
-                      maxLines: 2,
-                      softWrap: true,
-                      style: Theme.of(context).textTheme.headlineMedium,
+                    child: InkWell(
+                      onTap: () => context.push('/settings/ble'),
+                      child: Text(
+                        'XY-SK120',
+                        maxLines: 2,
+                        softWrap: true,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 5),
-                  const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.muted,
-                    size: 20,
+                  InkWell(
+                    onTap: () => context.push('/settings/ble'),
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
                   ),
                 ],
               ),
@@ -133,7 +139,7 @@ class _PageHeader extends StatelessWidget {
           ),
         ),
         IconButton(
-          onPressed: () {},
+          onPressed: () => context.push('/settings'),
           icon: const Icon(Icons.settings_outlined, color: AppColors.muted),
         ),
       ],
@@ -539,9 +545,12 @@ class _RealtimeOutput extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
-            Text(
-              'More  ›',
-              style: const TextStyle(color: AppColors.blueBright, fontSize: 12),
+            InkWell(
+              onTap: () => context.push('/monitor'),
+              child: const Text(
+                'More  ›',
+                style: TextStyle(color: AppColors.blueBright, fontSize: 12),
+              ),
             ),
           ],
         ),
@@ -813,29 +822,21 @@ class _AdjustTileState extends State<_AdjustTile> {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Text('微调挡位', style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SegmentedButton<double>(
-                  key: ValueKey('adjust-step-${widget.unit}'),
-                  showSelectedIcon: false,
-                  segments: widget.steps
-                      .map(
-                        (step) => ButtonSegment<double>(
-                          value: step,
-                          label: Text(_stepLabel(step)),
-                        ),
-                      )
-                      .toList(),
-                  selected: {_step},
-                  onSelectionChanged: (selection) {
-                    setState(() => _step = selection.single);
-                  },
-                ),
-              ),
-            ],
+          SegmentedButton<double>(
+            key: ValueKey('adjust-step-${widget.unit}'),
+            showSelectedIcon: false,
+            segments: widget.steps
+                .map(
+                  (step) => ButtonSegment<double>(
+                    value: step,
+                    label: Text(_stepLabel(step)),
+                  ),
+                )
+                .toList(),
+            selected: {_step},
+            onSelectionChanged: (selection) {
+              setState(() => _step = selection.single);
+            },
           ),
         ],
       ),
@@ -1176,41 +1177,41 @@ class _QuickPresetPanel extends StatelessWidget {
       children: [
         SectionTitle(title: '快捷预设', subtitle: '只更新电压和电流设定，不会自动开启输出'),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _PresetButton(
-              label: '5 V / 1 A',
-              voltage: 5,
-              current: 1,
-              onApply: onApply,
-            ),
-            _PresetButton(
-              label: '9 V / 1 A',
-              voltage: 9,
-              current: 1,
-              onApply: onApply,
-            ),
-            _PresetButton(
-              label: '12 V / 2 A',
-              voltage: 12,
-              current: 2,
-              onApply: onApply,
-            ),
-            _PresetButton(
-              label: '24 V / 1 A',
-              voltage: 24,
-              current: 1,
-              onApply: onApply,
-            ),
-            _PresetButton(
-              label: '36 V / 1 A',
-              voltage: 36,
-              current: 1,
-              onApply: onApply,
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Keep preset buttons aligned with the voltage/current input cards
+            // above: full width when narrow, two per row when wide, so the
+            // QuickPreset panel matches other cards instead of shrinking to
+            // label-sized OutlinedButtons of differing widths.
+            const spacing = 8.0;
+            final columnCount = constraints.maxWidth >= 440 ? 2 : 1;
+            final buttonWidth =
+                (constraints.maxWidth - spacing * (columnCount - 1)) /
+                columnCount;
+            const presets = <(String, double, double)>[
+              ('5 V / 1 A', 5, 1),
+              ('9 V / 1 A', 9, 1),
+              ('12 V / 2 A', 12, 2),
+              ('24 V / 1 A', 24, 1),
+              ('36 V / 1 A', 36, 1),
+            ];
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final preset in presets)
+                  SizedBox(
+                    width: buttonWidth,
+                    child: _PresetButton(
+                      label: preset.$1,
+                      voltage: preset.$2,
+                      current: preset.$3,
+                      onApply: onApply,
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ],
     ),

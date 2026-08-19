@@ -36,27 +36,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 subtitle: 'Device, protection, communication and diagnostics',
               ),
               const SizedBox(height: 18),
+              if (state.errorMessage != null)
+                _SettingsError(message: state.errorMessage!),
+              if (state.errorMessage != null) const SizedBox(height: 12),
               GlassCard(
                 padding: const EdgeInsets.all(12),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _SettingsLink(
-                      label: 'Protection',
-                      icon: Icons.shield_outlined,
-                      onTap: () => context.push('/settings/protection'),
-                    ),
-                    _SettingsLink(
-                      label: 'Advanced Power',
-                      icon: Icons.auto_graph_rounded,
-                      onTap: () => context.push('/settings/advanced'),
-                    ),
-                    _SettingsLink(
-                      label: 'Device Settings',
-                      icon: Icons.tune_rounded,
-                      onTap: () => context.push('/settings/device'),
-                    ),
                     _SettingsLink(
                       label: 'BLE Devices',
                       icon: Icons.bluetooth_rounded,
@@ -182,7 +170,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       label: '蜂鸣器',
                       detail: 'BUZZER',
                       trailing: ToggleSwitch(
-                        value: false,
+                        value: status.buzzerEnabled ?? false,
                         onChanged: status.isConnected
                             ? notifier.setBuzzer
                             : null,
@@ -374,6 +362,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
   }
+}
+
+class _SettingsError extends StatelessWidget {
+  const _SettingsError({required this.message});
+  final String message;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: AppColors.red.withValues(alpha: .1),
+      border: Border.all(color: AppColors.red.withValues(alpha: .35)),
+      borderRadius: AppRadius.small,
+    ),
+    child: Text(message, style: const TextStyle(color: AppColors.red)),
+  );
 }
 
 class _SettingsLink extends StatelessWidget {

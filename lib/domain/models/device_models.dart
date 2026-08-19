@@ -101,6 +101,7 @@ class DeviceStatus {
     this.protectionStatus,
     this.protectionRaw,
     this.keyLocked,
+    this.buzzerEnabled,
     this.backlightLevel,
     this.voltageSet,
     this.currentSet,
@@ -131,6 +132,7 @@ class DeviceStatus {
   final ProtectionStatus? protectionStatus;
   final int? protectionRaw;
   final bool? keyLocked;
+  final bool? buzzerEnabled;
   final int? backlightLevel;
   final double? voltageSet;
   final double? currentSet;
@@ -177,6 +179,7 @@ class DeviceStatus {
     ProtectionStatus? protectionStatus,
     int? protectionRaw,
     bool? keyLocked,
+    bool? buzzerEnabled,
     int? backlightLevel,
     double? voltageSet,
     double? currentSet,
@@ -207,6 +210,7 @@ class DeviceStatus {
       protectionStatus: protectionStatus ?? this.protectionStatus,
       protectionRaw: protectionRaw ?? this.protectionRaw,
       keyLocked: keyLocked ?? this.keyLocked,
+      buzzerEnabled: buzzerEnabled ?? this.buzzerEnabled,
       backlightLevel: backlightLevel ?? this.backlightLevel,
       voltageSet: voltageSet ?? this.voltageSet,
       currentSet: currentSet ?? this.currentSet,

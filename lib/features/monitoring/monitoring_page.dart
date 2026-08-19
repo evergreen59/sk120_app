@@ -10,7 +10,7 @@ import '../../shared/responsive/responsive.dart';
 import '../../shared/widgets/glass_card.dart';
 import '../../shared/widgets/metric_card.dart';
 
-enum _ChartWindow { live, oneMinute, fiveMinutes, thirtyMinutes, oneHour }
+enum _ChartWindow { live, oneMinute, fiveMinutes, tenMinutes }
 
 class MonitoringPage extends ConsumerStatefulWidget {
   const MonitoringPage({super.key});
@@ -28,7 +28,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(deviceStateProvider);
     final status = state.status;
-    final samples = _paused ? _pausedSamples : _filteredSamples(state.samples);
+    final samples = _filteredSamples(_paused ? _pausedSamples : state.samples);
     return Scaffold(
       body: SafeArea(
         child: ResponsiveContent(
@@ -66,7 +66,11 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
                           onPressed: () {
                             setState(() {
                               _paused = !_paused;
-                              if (_paused) _pausedSamples.addAll(state.samples);
+                              if (_paused) {
+                                _pausedSamples
+                                  ..clear()
+                                  ..addAll(_filteredSamples(state.samples));
+                              }
                             });
                           },
                           icon: Icon(
@@ -77,7 +81,15 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
                         ),
                         IconButton(
                           tooltip: '清空曲线',
-                          onPressed: () => setState(_pausedSamples.clear),
+                          onPressed: () => setState(() {
+                            if (_paused) {
+                              _pausedSamples.clear();
+                            } else {
+                              ref
+                                  .read(deviceStateProvider.notifier)
+                                  .clearSamples();
+                            }
+                          }),
                           icon: const Icon(Icons.delete_sweep_outlined),
                         ),
                       ],
@@ -86,9 +98,9 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
                     GlassSegmentedControl<_ChartWindow>(
                       items: const [
                         (_ChartWindow.live, 'Real-time'),
-                        (_ChartWindow.oneMinute, '1H'),
-                        (_ChartWindow.fiveMinutes, '6H'),
-                        (_ChartWindow.thirtyMinutes, '24H'),
+                        (_ChartWindow.oneMinute, '1m'),
+                        (_ChartWindow.fiveMinutes, '5m'),
+                        (_ChartWindow.tenMinutes, '10m'),
                       ],
                       value: _window,
                       onChanged: (next) => setState(() => _window = next),
@@ -126,8 +138,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage> {
       _ChartWindow.live => const Duration(seconds: 30),
       _ChartWindow.oneMinute => const Duration(minutes: 1),
       _ChartWindow.fiveMinutes => const Duration(minutes: 5),
-      _ChartWindow.thirtyMinutes => const Duration(minutes: 30),
-      _ChartWindow.oneHour => const Duration(hours: 1),
+      _ChartWindow.tenMinutes => const Duration(minutes: 10),
     };
     return samples
         .where((sample) => now.difference(sample.timestamp) <= duration)

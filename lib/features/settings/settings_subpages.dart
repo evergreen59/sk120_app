@@ -264,6 +264,14 @@ class DeviceSettingsPage extends ConsumerWidget {
       subtitle: 'Display, sound, communication and calibration',
       child: Column(
         children: [
+          if (state.errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                state.errorMessage!,
+                style: const TextStyle(color: AppColors.red),
+              ),
+            ),
           GlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +325,7 @@ class DeviceSettingsPage extends ConsumerWidget {
                   'Buzzer',
                   'BUZZER',
                   ToggleSwitch(
-                    value: false,
+                    value: state.status.buzzerEnabled ?? false,
                     onChanged: state.status.isConnected
                         ? notifier.setBuzzer
                         : null,
@@ -387,6 +395,17 @@ class _BleDevicesPageState extends ConsumerState<BleDevicesPage> {
           : 'Select a device to connect',
       child: Column(
         children: [
+          if (state.errorMessage != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  state.errorMessage!,
+                  style: const TextStyle(color: AppColors.red),
+                ),
+              ),
+            ),
           GlassCard(
             child: Row(
               children: [
@@ -444,7 +463,7 @@ class _BleDevicesPageState extends ConsumerState<BleDevicesPage> {
                           children: [
                             Text(device.name),
                             Text(
-                              '${device.rssi ?? '--'} dBm · Excellent Signal',
+                              '${device.rssi ?? '--'} dBm · ${_signalLabel(device.rssi)}',
                               style: const TextStyle(
                                 color: AppColors.dim,
                                 fontSize: 11,
@@ -457,6 +476,16 @@ class _BleDevicesPageState extends ConsumerState<BleDevicesPage> {
                         child: const Text('Connect'),
                         onPressed: () => notifier.connect(deviceId: device.id),
                       ),
+                      IconButton(
+                        tooltip: '收藏',
+                        onPressed: () =>
+                            notifier.toggleFavoriteDevice(device.id),
+                        icon: Icon(
+                          state.favoriteDeviceIds.contains(device.id)
+                              ? Icons.star
+                              : Icons.star_border,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -465,6 +494,13 @@ class _BleDevicesPageState extends ConsumerState<BleDevicesPage> {
       ),
     );
   }
+}
+
+String _signalLabel(int? rssi) {
+  if (rssi == null) return '信号未知';
+  if (rssi >= -60) return '信号优秀';
+  if (rssi >= -75) return '信号良好';
+  return '信号较弱';
 }
 
 class _SubPageScaffold extends StatelessWidget {

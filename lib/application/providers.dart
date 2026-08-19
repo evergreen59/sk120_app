@@ -10,6 +10,7 @@ import '../data/repositories/in_memory_repository.dart';
 import '../data/transport/universal_ble_transport.dart';
 import '../domain/models/device_models.dart';
 import '../domain/protocol/modbus_client.dart';
+import '../domain/protocol/registers.dart';
 import '../domain/repositories/local_repository.dart';
 import '../domain/services/mock_power_device.dart';
 import '../domain/services/power_device.dart';
@@ -281,11 +282,31 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
     await stopScan();
     state = state.copyWith(busy: true, clearError: true);
     final result = await _service.connect(deviceId: deviceId);
+    String? groupError;
+    if (result.isSuccess) {
+      // Modbus requests must be serialized; read M0-M9 in order.
+      for (var index = 0; index < RegisterCatalog.dataGroupCount; index++) {
+        final groupResult = await _service.readDataGroup(index);
+        if (groupResult.isSuccess) {
+          final existing = state.groups[index];
+          final loaded = groupResult.value!.copyWith(name: existing.name);
+          final groups = [...state.groups]..[index] = loaded;
+          state = state.copyWith(groups: groups);
+          unawaited(
+            ref
+                .read(localRepositoryProvider)
+                .saveGroup(loaded, deviceId: _service.id),
+          );
+        } else {
+          groupError ??= '读取 M$index 失败：${groupResult.error?.message ?? ''}';
+        }
+      }
+    }
     state = state.copyWith(
       busy: false,
       status: _service.status,
-      errorMessage: result.error?.message,
-      clearError: result.isSuccess,
+      errorMessage: result.error?.message ?? groupError,
+      clearError: result.isSuccess && groupError == null,
     );
   }
 
@@ -301,6 +322,7 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
   }
 
   void clearError() => state = state.copyWith(clearError: true);
+  void clearSamples() => state = state.copyWith(samples: const []);
 
   Future<void> disconnect() async {
     state = state.copyWith(busy: true, clearError: true);
@@ -343,14 +365,15 @@ class DeviceStateNotifier extends Notifier<DeviceUiState> {
     final result = await _service.readDataGroup(index);
     if (result.isSuccess) {
       final groups = [...state.groups];
-      groups[index] = result.value!;
+      final loaded = result.value!.copyWith(name: groups[index].name);
+      groups[index] = loaded;
       unawaited(
         ref
             .read(localRepositoryProvider)
-            .saveGroup(result.value!, deviceId: _service.id),
+            .saveGroup(loaded, deviceId: _service.id),
       );
       state = state.copyWith(groups: groups, busy: false);
-      return result.value;
+      return loaded;
     } else {
       state = state.copyWith(busy: false, errorMessage: result.error?.message);
       return null;

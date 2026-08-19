@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:file_saver/file_saver.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../application/providers.dart';
@@ -18,7 +21,9 @@ class CommunicationLogPage extends ConsumerStatefulWidget {
 }
 
 class _CommunicationLogPageState extends ConsumerState<CommunicationLogPage> {
-  late Future<List<CommunicationLogEntry>> _logs;
+  List<CommunicationLogEntry> _entries = const [];
+  bool _loading = true;
+  StreamSubscription<List<CommunicationLogEntry>>? _logSubscription;
   bool _paused = false;
   bool _showTx = true;
   bool _showRx = true;
@@ -27,12 +32,24 @@ class _CommunicationLogPageState extends ConsumerState<CommunicationLogPage> {
   @override
   void initState() {
     super.initState();
-    _logs = _load();
+    final repository = ref.read(localRepositoryProvider);
+    final id = ref.read(powerDeviceServiceProvider).id;
+    _logSubscription = repository.watchCommunicationLogs(id).listen((logs) {
+      if (!mounted) return;
+      if (!_paused) {
+        setState(() => _entries = logs);
+      } else {
+        _entries = logs;
+      }
+      if (mounted) setState(() => _loading = false);
+    });
   }
 
-  Future<List<CommunicationLogEntry>> _load() => ref
-      .read(localRepositoryProvider)
-      .loadCommunicationLogs(ref.read(powerDeviceServiceProvider).id);
+  @override
+  void dispose() {
+    _logSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -59,27 +76,24 @@ class _CommunicationLogPageState extends ConsumerState<CommunicationLogPage> {
     ),
     body: SafeArea(
       child: ResponsiveContent(
-        child: FutureBuilder<List<CommunicationLogEntry>>(
-          future: _logs,
-          builder: (context, snapshot) {
-            final entries = (snapshot.data ?? const <CommunicationLogEntry>[])
-                .where((entry) {
-                  final directionMatch =
-                      entry.direction == CommunicationDirection.tx
-                      ? _showTx
-                      : _showRx;
-                  final searchMatch =
-                      _search.isEmpty ||
-                      entry.rawBytes
-                          .map((byte) => byte.toRadixString(16))
-                          .join(' ')
-                          .contains(_search.toLowerCase()) ||
-                      (entry.parsedMessage ?? '').toLowerCase().contains(
-                        _search.toLowerCase(),
-                      );
-                  return directionMatch && searchMatch;
-                })
-                .toList();
+        child: Builder(
+          builder: (context) {
+            final entries = _entries.where((entry) {
+              final directionMatch =
+                  entry.direction == CommunicationDirection.tx
+                  ? _showTx
+                  : _showRx;
+              final searchMatch =
+                  _search.isEmpty ||
+                  entry.rawBytes
+                      .map((byte) => byte.toRadixString(16))
+                      .join(' ')
+                      .contains(_search.toLowerCase()) ||
+                  (entry.parsedMessage ?? '').toLowerCase().contains(
+                    _search.toLowerCase(),
+                  );
+              return directionMatch && searchMatch;
+            }).toList();
             return ListView(
               padding: const EdgeInsets.fromLTRB(28, 18, 28, 28),
               children: [
@@ -110,7 +124,7 @@ class _CommunicationLogPageState extends ConsumerState<CommunicationLogPage> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                if (snapshot.connectionState == ConnectionState.waiting)
+                if (_loading)
                   const Center(child: CircularProgressIndicator())
                 else if (entries.isEmpty)
                   const GlassCard(
@@ -140,6 +154,25 @@ class _CommunicationLogPageState extends ConsumerState<CommunicationLogPage> {
     final content = csv
         ? await repository.exportLogsCsv(id)
         : await repository.exportLogsJson(id);
+    try {
+      await FileSaver.instance.saveFile(
+        name: '${id}_communication_${DateTime.now().millisecondsSinceEpoch}',
+        bytes: Uint8List.fromList(utf8.encode(content)),
+        fileExtension: csv ? 'csv' : 'json',
+        mimeType: csv ? MimeType.csv : MimeType.json,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('文件已保存')));
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      }
+    }
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,

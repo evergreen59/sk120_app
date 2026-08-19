@@ -54,18 +54,6 @@ final appRouter = GoRouter(
               builder: (context, state) => const SettingsPage(),
               routes: [
                 GoRoute(
-                  path: 'protection',
-                  builder: (context, state) => const ProtectionPage(),
-                ),
-                GoRoute(
-                  path: 'advanced',
-                  builder: (context, state) => const AdvancedPowerPage(),
-                ),
-                GoRoute(
-                  path: 'device',
-                  builder: (context, state) => const DeviceSettingsPage(),
-                ),
-                GoRoute(
                   path: 'ble',
                   builder: (context, state) => const BleDevicesPage(),
                 ),
@@ -131,7 +119,7 @@ class AppShell extends StatelessWidget {
               children: [
                 if (!mobile && !subpage)
                   Container(
-                    width: wide ? 220 : 84,
+                    width: wide ? 180 : 84,
                     decoration: const BoxDecoration(
                       border: Border(
                         right: BorderSide(color: AppColors.border),
@@ -179,17 +167,6 @@ class AppShell extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (wide)
-                          const Padding(
-                            padding: EdgeInsets.all(18),
-                            child: Text(
-                              'BLE / Modbus RTU',
-                              style: TextStyle(
-                                color: AppColors.dim,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                   ),
